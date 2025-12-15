@@ -49,7 +49,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: veritium-windows-release
-          path: build\windows\runner\Release
+          path: build/windows/x64/runner/Release
 
   publish-release:
     name: Publish GitHub Release
@@ -72,6 +72,6 @@ jobs:
           body: "Automated release of the Veritium ${{ github.ref_name }}"
           draft: false
           prerelease: false
-          files: build/windows/runner/Release/*
+          files: build/windows/x64/runner/Release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
