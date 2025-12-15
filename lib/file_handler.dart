@@ -21,26 +21,32 @@ class FileHandler {
         // Read the XML file
         String fileContent = await file.readAsString();
 
-        // Parse the XML content
-        XmlDocument xmlDocument = XmlDocument.parse(fileContent); 
+        // Parse the XML content (not used)
+        XmlDocument.parse(fileContent); 
 
-        // Display success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Successfully loaded XML file: $filePath')),
-        );
+        if (context.mounted) {
+          // Display success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Successfully loaded XML file: $filePath')),
+          );
+        }
 
         // Perform further processing with `xmlDocument` if needed
       } else {
         // User canceled the file picker
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No file selected.')),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No file selected.')),
+          );
+        }
       }
     } catch (e) {
       // Handle errors
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading XML file: $e')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading XML file: $e')),
+        );
+      }
     }
   }
 
@@ -50,130 +56,96 @@ class FileHandler {
     return List.generate(64, (index) => chars[random.nextInt(chars.length)]).join();
   }
 
-  static Future<(String, List<BoundingBox>)?> loadJsonFileWithPath(BuildContext context) async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
-      if (result != null && result.files.single.path != null) {
-        String filePath = result.files.single.path!;
-        File file = File(filePath);
-        String fileContent = await file.readAsString();
-        final jsonData = jsonDecode(fileContent);
-        List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
-        List<BoundingBox> allBboxes = [];
-        bool updated = false;
-        for (var page in pdfInfo) {
-          List<dynamic> paraBlocks = page['para_blocks'] ?? [];
-          for (var block in paraBlocks) {
-            if (block['bbox'] != null) {
-              List<MapEntry<String, String>> hashTextPairs = [];
-              for (var line in block['lines'] ?? []) {
-                for (var span in line['spans'] ?? []) {
-                  String content = span['content'] ?? '';
-                  String hash = span['content_hash'] ?? generateRandomHash();
-                  if (span['content_hash'] == null) {
-                    span['content_hash'] = hash;
-                    updated = true;
-                  }
-                  hashTextPairs.add(MapEntry(hash, content));
-                }
+  static Future<(String, List<BoundingBox>)> loadJsonFileWithPath() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
+    if (result == null || result.files.single.path == null) {
+      throw Exception('No file selected.');
+    }
+    String filePath = result.files.single.path!;
+    File file = File(filePath);
+    String fileContent = await file.readAsString();
+    final jsonData = jsonDecode(fileContent);
+    List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
+    List<BoundingBox> allBboxes = [];
+    bool updated = false;
+    for (var page in pdfInfo) {
+      List<dynamic> paraBlocks = page['para_blocks'] ?? [];
+      for (var block in paraBlocks) {
+        if (block['bbox'] != null) {
+          List<MapEntry<String, String>> hashTextPairs = [];
+          for (var line in block['lines'] ?? []) {
+            for (var span in line['spans'] ?? []) {
+              String content = span['content'] ?? '';
+              String hash = span['content_hash'] ?? generateRandomHash();
+              if (span['content_hash'] == null) {
+                span['content_hash'] = hash;
+                updated = true;
               }
-              allBboxes.add(BoundingBox.fromJson({
-                'page_idx': page['page_idx'],
-                'hash_text_pairs': hashTextPairs.map((e) => {'hash': e.key, 'text': e.value}).toList(),
-                'bbox': block['bbox'],
-              }));
+              hashTextPairs.add(MapEntry(hash, content));
             }
           }
+          allBboxes.add(BoundingBox.fromJson({
+            'page_idx': page['page_idx'],
+            'hash_text_pairs': hashTextPairs.map((e) => {'hash': e.key, 'text': e.value}).toList(),
+            'bbox': block['bbox'],
+          }));
         }
-        if (updated) {
-          // Make a backup of the original file
-          final backupFile = File('$filePath.bak');
-          await backupFile.writeAsString(fileContent);
-          // Save the modified JSON back to the file
-          await file.writeAsString(JsonEncoder.withIndent('  ').convert(jsonData));
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Successfully loaded JSON file: $filePath. Found ${allBboxes.length} bounding boxes.')),
-        );
-        return (filePath, allBboxes);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No file selected.')),
-        );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading JSON file: $e')),
-      );
     }
-    return null;
+    if (updated) {
+      // Make a backup of the original file
+      final backupFile = File('$filePath.bak');
+      await backupFile.writeAsString(fileContent);
+      // Save the modified JSON back to the file
+      await file.writeAsString(JsonEncoder.withIndent('  ').convert(jsonData));
+    }
+    return (filePath, allBboxes);
   }
 
-  static Future<void> renderBoxes(BuildContext context, String jsonFilePath, List<BoundingBox> allBboxes) async {
-    try {
-      String pdfFilePath = jsonFilePath.replaceAll('_middle.json', '_origin.pdf');
-      File pdfFile = File(pdfFilePath);
-
-      if (!pdfFile.existsSync()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF file not found: $pdfFilePath')),
-        );
-        return;
-      }
-
-      final doc = await pdfrx.PdfDocument.openFile(pdfFilePath);
-      List<ui.Image> croppedImages = [];
-
-      // Group bounding boxes by page index
-      Map<int, List<BoundingBox>> bboxesByPage = {};
-      for (var bbox in allBboxes) {
-        bboxesByPage.putIfAbsent(bbox.pageIndex, () => []).add(bbox);
-      }
-
-      for (var entry in bboxesByPage.entries) {
-        int pageIndex = entry.key;
-        List<BoundingBox> pageBboxes = entry.value;
-        if (pageIndex < doc.pages.length) {
-          final page = await doc.pages[pageIndex]; // 1-based index
-          final pageImage = await page.render();
-          final img = await pageImage?.createImage();
-          if (img == null) continue;
-
-          final double scaleX = img.width / page.width;
-          final double scaleY = img.height / page.height;
-
-          for (var bbox in pageBboxes) {
-            final int left = (bbox.xMin * scaleX).round();
-            final int top = (bbox.yMin * scaleY).round();
-            final int width = ((bbox.xMax - bbox.xMin) * scaleX).round();
-            final int height = ((bbox.yMax - bbox.yMin) * scaleY).round();
-
-            final ui.PictureRecorder recorder = ui.PictureRecorder();
-            final ui.Canvas canvas = ui.Canvas(recorder);
-            final paint = ui.Paint();
-            canvas.drawImageRect(
-              img,
-              Rect.fromLTWH(left.toDouble(), top.toDouble(), width.toDouble(), height.toDouble()),
-              Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
-              paint,
-            );
-            final cropped = await recorder.endRecording().toImage(width, height);
-            final pngBytes = await cropped.toByteData(format: ui.ImageByteFormat.png);
-            bbox.croppedImage = cropped;
-            bbox.croppedPngBytes = pngBytes?.buffer.asUint8List();
-            croppedImages.add(cropped);
-          }
+  static Future<void> renderBoxes(String jsonFilePath, List<BoundingBox> allBboxes) async {
+    String pdfFilePath = jsonFilePath.replaceAll('_middle.json', '_origin.pdf');
+    File pdfFile = File(pdfFilePath);
+    if (!pdfFile.existsSync()) {
+      throw Exception('PDF file not found: $pdfFilePath');
+    }
+    final doc = await pdfrx.PdfDocument.openFile(pdfFilePath);
+    // Group bounding boxes by page index
+    Map<int, List<BoundingBox>> bboxesByPage = {};
+    for (var bbox in allBboxes) {
+      bboxesByPage.putIfAbsent(bbox.pageIndex, () => []).add(bbox);
+    }
+    for (var entry in bboxesByPage.entries) {
+      int pageIndex = entry.key;
+      List<BoundingBox> pageBboxes = entry.value;
+      if (pageIndex < doc.pages.length) {
+        final page = doc.pages[pageIndex];
+        final pageImage = await page.render();
+        final img = await pageImage?.createImage();
+        if (img == null) continue;
+        final double scaleX = img.width / page.width;
+        final double scaleY = img.height / page.height;
+        for (var bbox in pageBboxes) {
+          final int left = (bbox.xMin * scaleX).round();
+          final int top = (bbox.yMin * scaleY).round();
+          final int width = ((bbox.xMax - bbox.xMin) * scaleX).round();
+          final int height = ((bbox.yMax - bbox.yMin) * scaleY).round();
+          final ui.PictureRecorder recorder = ui.PictureRecorder();
+          final ui.Canvas canvas = ui.Canvas(recorder);
+          final paint = ui.Paint();
+          canvas.drawImageRect(
+            img,
+            Rect.fromLTWH(left.toDouble(), top.toDouble(), width.toDouble(), height.toDouble()),
+            Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+            paint,
+          );
+          final cropped = await recorder.endRecording().toImage(width, height);
+          final pngBytes = await cropped.toByteData(format: ui.ImageByteFormat.png);
+          bbox.croppedImage = cropped;
+          bbox.croppedPngBytes = pngBytes?.buffer.asUint8List();
         }
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Successfully extracted ${croppedImages.length} images from $pdfFilePath.')),
-      );
-      // Further processing of croppedImages as needed
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error processing PDF file: $e')),
-      );
     }
+    // No UI side effects, errors are thrown to be handled by the caller
   }
 
   static Future<void> pdfrxInitialize() async {

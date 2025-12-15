@@ -37,7 +37,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
   @override
   void initState() {
     super.initState();
-    _textController = TextEditingController(text: "testing\ntesting2");
+    _textController = TextEditingController(text: "No file loaded.");
   }
 
   @override
@@ -93,35 +93,43 @@ class _CorrectionPageState extends State<CorrectionPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
-                spacing: 20,
                 children: [
                   // Show cropped image if available, else placeholder
-                  _croppedImageViewer(),
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.3,
-                    child: Builder(
-                      builder: (context) {
-                        final box = _croppedBoxes.isNotEmpty ? _croppedBoxes[_currentBoxIndex] : null;
-                        final int lineCount = box?.text.split('\n').length ?? 1;
-                        final int imageHeight = box?.croppedImage?.height ?? 200;
-                        final double fontSize = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.4;
-                        return TextField(
-                          controller: _textController,
-                          onChanged: (value) {
-                            if (_croppedBoxes.isNotEmpty) {
-                              setState(() {
-                                _croppedBoxes[_currentBoxIndex].updateText(value);
-                              });
-                            }
-                          },
-                          maxLines: null,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'Enter text here',
-                          ),
-                        );
-                      },
+                    width: 600,
+                    child: _croppedImageViewer(),
+                  ),
+                  SizedBox(width: 20),
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: 600,
+                        minWidth: 200,
+                      ),
+                      child: Builder(
+                        builder: (context) {
+                          final box = _croppedBoxes.isNotEmpty ? _croppedBoxes[_currentBoxIndex] : null;
+                          final int lineCount = box?.text.split('\n').length ?? 1;
+                          final int imageHeight = box?.croppedImage?.height ?? 200;
+                          final double fontSize = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.4;
+                          return TextField(
+                            controller: _textController,
+                            onChanged: (value) {
+                              if (_croppedBoxes.isNotEmpty) {
+                                setState(() {
+                                  _croppedBoxes[_currentBoxIndex].updateText(value);
+                                });
+                              }
+                            },
+                            maxLines: null,
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: 'Enter text here',
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -192,11 +200,16 @@ class _CorrectionPageState extends State<CorrectionPage> {
       onSelected: (value) async {
         if (value == 'Load JSON') {
           await FileHandler.pdfrxInitialize();
-          final result = await FileHandler.loadJsonFileWithPath(context);
-          if (result != null) {
-            final (filePath, boxes) = result;
-            await FileHandler.renderBoxes(context, filePath, boxes);
+          try {
+            final (filePath, boxes) = await FileHandler.loadJsonFileWithPath();
+            await FileHandler.renderBoxes(filePath, boxes);
             _showCroppedImages(boxes, jsonFilePath: filePath);
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error loading JSON: $e')),
+              );
+            }
           }
         }
         // Handle other menu actions here
