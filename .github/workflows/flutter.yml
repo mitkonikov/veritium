@@ -65,9 +65,15 @@ jobs:
           name: veritium-windows-release
           path: dist
 
-      - run: |
+      - name: Zip Windows Release
+        run: |
           cd dist
           zip -r ../veritium-windows-release.zip .
+
+      - name: Zip Sample
+        run: |
+          cd examples/straza
+          zip -r ../../sample.zip .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -77,6 +83,8 @@ jobs:
           body: "Automated release of the Veritium ${{ github.ref_name }}"
           draft: false
           prerelease: false
-          files: veritium-windows-release.zip
+          files: |
+            veritium-windows-release.zip
+            sample.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
