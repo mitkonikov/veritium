@@ -85,111 +85,19 @@ class _CorrectionPageState extends State<CorrectionPage> {
         ),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.8,
-              child: Row(
+        child: _croppedBoxes.isEmpty
+            ? const Text(
+                'Please load a file to begin.',
+                style: TextStyle(fontSize: 22, color: Colors.white70),
+              )
+            : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Show cropped image if available, else placeholder
-                  SizedBox(
-                    width: 600,
-                    child: _croppedImageViewer(),
-                  ),
-                  SizedBox(width: 20),
-                  Flexible(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: 600,
-                        minWidth: 200,
-                      ),
-                      child: Builder(
-                        builder: (context) {
-                          final box = _croppedBoxes.isNotEmpty ? _croppedBoxes[_currentBoxIndex] : null;
-                          final int lineCount = box?.text.split('\n').length ?? 1;
-                          final int imageHeight = box?.croppedImage?.height ?? 200;
-                          final double fontSize = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.4;
-                          return TextField(
-                            controller: _textController,
-                            onChanged: (value) {
-                              if (_croppedBoxes.isNotEmpty) {
-                                setState(() {
-                                  _croppedBoxes[_currentBoxIndex].updateText(value);
-                                });
-                              }
-                            },
-                            maxLines: null,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: 'Enter text here',
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  _buildCorrectionPanel(),
+                  _croppedImageNavigation(),
+                  _buildButtons()
                 ],
               ),
-            ),
-            _croppedImageNavigation(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 20,
-              children: [
-                TextButton(
-                  onPressed: () async {
-                    if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
-                      await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Corrected JSON saved.')),
-                        );
-                      }
-                    }
-                  },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  ),
-                  child: Text(
-                    "Save",
-                    style: TextStyle(
-                      fontSize: 18, // Increase font size
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      if (_croppedBoxes.isNotEmpty) {
-                        final box = _croppedBoxes[_currentBoxIndex];
-                        box.isFlagged = !box.isFlagged;
-                      }
-                    });
-                  },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    backgroundColor: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
-                        ? Colors.redAccent
-                        : Colors.grey[800],
-                  ),
-                  child: Text(
-                    _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged ? "Flagged" : "Flag",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
-                          ? Colors.white
-                          : Colors.white,
-                    ),
-                  ),
-                )
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -265,6 +173,111 @@ class _CorrectionPageState extends State<CorrectionPage> {
               ? () => _onNavigateToBox(_currentBoxIndex + 1)
               : null,
         ),
+      ],
+    );
+  }
+
+  Widget _buildCorrectionPanel() {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.8,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Show cropped image if available, else placeholder
+          SizedBox(
+            width: 600,
+            child: _croppedImageViewer(),
+          ),
+          SizedBox(width: 20),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 600,
+                minWidth: 200,
+              ),
+              child: _buildCorrectionTextField(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCorrectionTextField() {
+    final box = _croppedBoxes.isNotEmpty ? _croppedBoxes[_currentBoxIndex] : null;
+    final int lineCount = box?.text.split('\n').length ?? 1;
+    final int imageHeight = box?.croppedImage?.height ?? 200;
+    final double fontSize = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.4;
+    return TextField(
+      controller: _textController,
+      onChanged: (value) {
+        if (_croppedBoxes.isNotEmpty) {
+          setState(() {
+            _croppedBoxes[_currentBoxIndex].updateText(value);
+          });
+        }
+      },
+      maxLines: null,
+      style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
+      decoration: InputDecoration(
+        border: OutlineInputBorder(),
+        hintText: 'Enter text here',
+      ),
+    );
+  }
+
+  Widget _buildButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      spacing: 20,
+      children: [
+        TextButton(
+          onPressed: () async {
+            if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
+              await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Corrected JSON saved.')),
+                );
+              }
+            }
+          },
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          ),
+          child: Text(
+            "Save",
+            style: TextStyle(
+              fontSize: 18, // Increase font size
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              if (_croppedBoxes.isNotEmpty) {
+                final box = _croppedBoxes[_currentBoxIndex];
+                box.isFlagged = !box.isFlagged;
+              }
+            });
+          },
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            backgroundColor: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
+                ? Colors.redAccent
+                : Colors.grey[800],
+          ),
+          child: Text(
+            _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged ? "Flagged" : "Flag",
+            style: TextStyle(
+              fontSize: 18,
+              color: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
+                  ? Colors.white
+                  : Colors.white,
+            ),
+          ),
+        )
       ],
     );
   }

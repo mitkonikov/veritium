@@ -8,9 +8,10 @@ void main() {
     expect(find.text('File'), findsOneWidget);
   });
 
-  testWidgets('CorrectionPage shows Save and Flag buttons', (WidgetTester tester) async {
+  testWidgets('CorrectionPage shows load file prompt when no file is loaded', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: CorrectionPage()));
-    expect(find.text('Save'), findsOneWidget);
-    expect(find.textContaining('Flag'), findsOneWidget);
+    expect(find.text('Please load a file to begin.'), findsOneWidget);
+    expect(find.text('Save'), findsNothing);
+    expect(find.textContaining('Flag'), findsNothing);
   });
 }
