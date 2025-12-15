@@ -75,7 +75,7 @@ class FileHandler {
           List<MapEntry<String, String>> hashTextPairs = [];
           for (var line in block['lines'] ?? []) {
             for (var span in line['spans'] ?? []) {
-              String content = span['content'] ?? '';
+              String content = span['corrected_content'] ?? span['content'] ?? '';
               String hash = span['content_hash'] ?? generateRandomHash();
               if (span['content_hash'] == null) {
                 span['content_hash'] = hash;
@@ -152,9 +152,9 @@ class FileHandler {
     pdfrx.pdfrxFlutterInitialize();
   }
 
-  static Future<void> saveCorrectedJsonFile(String jsonFilePath, List<BoundingBox> boxes) async {
+  static Future<void> saveCorrectedJsonFile(String originalJsonFile, String jsonFilePath, List<BoundingBox> boxes) async {
     try {
-      final file = File(jsonFilePath);
+      final file = File(originalJsonFile);
       String fileContent = await file.readAsString();
       final jsonData = jsonDecode(fileContent);
       List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
@@ -194,11 +194,31 @@ class FileHandler {
           }
         }
       }
-      // Save the modified JSON back to the file
-      await file.writeAsString(JsonEncoder.withIndent('  ').convert(jsonData));
+
+      if (originalJsonFile == jsonFilePath) {
+        // Save the modified JSON back to the file
+        await file.writeAsString(JsonEncoder.withIndent('  ').convert(jsonData));
+      } else {
+        // Save to a new file
+        final newFile = File(jsonFilePath);
+        await newFile.writeAsString(JsonEncoder.withIndent('  ').convert(jsonData));
+      }
     } catch (e) {
       // Handle errors
       debugPrint('Error saving corrected JSON: $e');
+    }
+  }
+
+  static Future<void> saveNewCorrectedJsonFile(String originalJsonFile, List<BoundingBox> boxes) async {
+    String? savePath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save Corrected JSON As',
+      fileName: 'corrected_output.json',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+
+    if (savePath != null) {
+      saveCorrectedJsonFile(originalJsonFile, savePath, boxes);
     }
   }
 }

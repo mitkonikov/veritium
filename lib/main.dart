@@ -119,6 +119,8 @@ class _CorrectionPageState extends State<CorrectionPage> {
               );
             }
           }
+        } else if (value == 'Save JSON') {
+          await FileHandler.saveNewCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
         }
         // Handle other menu actions here
       },
@@ -235,7 +237,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
         TextButton(
           onPressed: () async {
             if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
-              await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
+              await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Corrected JSON saved.')),
