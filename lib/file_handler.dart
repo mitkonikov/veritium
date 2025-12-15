@@ -73,6 +73,7 @@ class FileHandler {
       for (var block in paraBlocks) {
         if (block['bbox'] != null) {
           List<MapEntry<String, String>> hashTextPairs = [];
+          bool foundSpans = false;
           for (var line in block['lines'] ?? []) {
             for (var span in line['spans'] ?? []) {
               String content = span['corrected_content'] ?? span['content'] ?? '';
@@ -82,7 +83,11 @@ class FileHandler {
                 updated = true;
               }
               hashTextPairs.add(MapEntry(hash, content));
+              foundSpans = true;
             }
+          }
+          if (!foundSpans) {
+            continue;
           }
           allBboxes.add(BoundingBox.fromJson({
             'page_idx': page['page_idx'],
