@@ -72,6 +72,6 @@ jobs:
           body: "Automated release of the Veritium ${{ github.ref_name }}"
           draft: false
           prerelease: false
-          files: veritium-windows-release
+          files: veritium-windows-release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
