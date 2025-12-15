@@ -15,7 +15,42 @@ class Veritium extends StatelessWidget {
       title: 'Veritium',
       theme: ThemeData(
         colorScheme: ColorScheme.dark(primary: Color.fromARGB(255, 0, 199, 213)),
-        splashFactory: NoSplash.splashFactory
+        splashFactory: NoSplash.splashFactory,
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ),
+          ),
+        ),
+        popupMenuTheme: PopupMenuThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(0),
+          ),
+          menuPadding: EdgeInsetsGeometry.all(0.0),
+          position: PopupMenuPosition.under,
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ),
+          ),
+        ),
       ),
       debugShowCheckedModeBanner: false,
       themeAnimationDuration: .zero,
@@ -92,6 +127,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
               )
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                spacing: 10,
                 children: [
                   _buildCorrectionPanel(),
                   _croppedImageNavigation(),
@@ -161,6 +197,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
     if (_croppedBoxes.isEmpty) return const SizedBox.shrink();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      spacing: 10,
       children: [
         IconButton(
           icon: const Icon(Icons.arrow_left),
@@ -181,7 +218,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
 
   Widget _buildCorrectionPanel() {
     return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.7,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -223,7 +260,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
       maxLines: null,
       style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
       decoration: InputDecoration(
-        border: OutlineInputBorder(),
+        border: OutlineInputBorder(borderRadius: BorderRadius.zero),
         hintText: 'Enter text here',
       ),
     );
