@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:xml/xml.dart';
 import 'dart:convert';
 import 'package:pdfrx/pdfrx.dart' as pdfrx;
 import 'dart:ui' as ui;
@@ -9,47 +8,6 @@ import 'dart:typed_data';
 import 'dart:math';
 
 class FileHandler {
-  static Future<void> loadAltoXml(BuildContext context) async {
-    try {
-      // Open file picker to select an XML file
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xml']);
-
-      if (result != null && result.files.single.path != null) {
-        String filePath = result.files.single.path!;
-        File file = File(filePath);
-
-        // Read the XML file
-        String fileContent = await file.readAsString();
-
-        // Parse the XML content (not used)
-        XmlDocument.parse(fileContent); 
-
-        if (context.mounted) {
-          // Display success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Successfully loaded XML file: $filePath')),
-          );
-        }
-
-        // Perform further processing with `xmlDocument` if needed
-      } else {
-        // User canceled the file picker
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No file selected.')),
-          );
-        }
-      }
-    } catch (e) {
-      // Handle errors
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading XML file: $e')),
-        );
-      }
-    }
-  }
-
   static String generateRandomHash() {
     final random = Random();
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
