@@ -237,6 +237,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
   Widget _buildButtons() {
     const double buttonWidth = 120;
     const double buttonHeight = 48;
+    final bool isFlagged = _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -280,14 +281,14 @@ class _CorrectionPageState extends State<CorrectionPage> {
             },
             style: TextButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              backgroundColor: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
+              backgroundColor: isFlagged
                   ? Colors.redAccent
                   : darkThemeValues[ThemeStyleKey.buttonColor],
             ),
             child: Text(
-              _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged ? "Flagged" : "Flag",
+              isFlagged ? "Flagged" : "Flag",
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 18
               ),
             ),
           ),

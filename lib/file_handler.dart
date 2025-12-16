@@ -74,6 +74,7 @@ class FileHandler {
         if (block['bbox'] != null) {
           List<MapEntry<String, String>> hashTextPairs = [];
           bool foundSpans = false;
+          bool flaggedBlock = false;
           for (var line in block['lines'] ?? []) {
             for (var span in line['spans'] ?? []) {
               String content = span['corrected_content'] ?? span['content'] ?? '';
@@ -81,6 +82,9 @@ class FileHandler {
               if (span['content_hash'] == null) {
                 span['content_hash'] = hash;
                 updated = true;
+              }
+              if (span['flagged'] == true) {
+                flaggedBlock = true;
               }
               hashTextPairs.add(MapEntry(hash, content));
               foundSpans = true;
@@ -93,6 +97,7 @@ class FileHandler {
             'page_idx': page['page_idx'],
             'hash_text_pairs': hashTextPairs.map((e) => {'hash': e.key, 'text': e.value}).toList(),
             'bbox': block['bbox'],
+            'is_flagged': flaggedBlock,
           }));
         }
       }
@@ -275,6 +280,7 @@ class BoundingBox {
       yMin: json['bbox'][1],
       xMax: json['bbox'][2],
       yMax: json['bbox'][3],
+      isFlagged: json['is_flagged'] ?? false,
     );
   }
 
