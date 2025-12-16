@@ -1,3 +1,4 @@
+import 'theme.dart';
 import 'package:flutter/material.dart';
 import 'file_handler.dart';
 
@@ -13,45 +14,7 @@ class Veritium extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Veritium',
-      theme: ThemeData(
-        colorScheme: ColorScheme.dark(primary: Color.fromARGB(255, 0, 199, 213)),
-        splashFactory: NoSplash.splashFactory,
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero,
-            ),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero,
-            ),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero,
-            ),
-          ),
-        ),
-        popupMenuTheme: PopupMenuThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(0),
-          ),
-          menuPadding: EdgeInsetsGeometry.all(0.0),
-          position: PopupMenuPosition.under,
-        ),
-        iconButtonTheme: IconButtonThemeData(
-          style: IconButton.styleFrom(
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero,
-            ),
-          ),
-        ),
-      ),
+      theme: buildAppTheme(),
       debugShowCheckedModeBanner: false,
       themeAnimationDuration: .zero,
       home: const CorrectionPage(),
@@ -161,10 +124,15 @@ class _CorrectionPageState extends State<CorrectionPage> {
         // Handle other menu actions here
       },
       itemBuilder: (BuildContext context) {
-        return options.map((option) => PopupMenuItem(value: option, child: Text(option))).toList();
+        return options.map((option) => PopupMenuItem(
+          value: option,
+          height: 38,
+          child: Text(option)
+        )).toList();
       },
+      padding: EdgeInsetsGeometry.all(0),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
         child: Text(
           title,
           style: const TextStyle(color: Colors.white, fontSize: 16),
@@ -267,56 +235,63 @@ class _CorrectionPageState extends State<CorrectionPage> {
   }
 
   Widget _buildButtons() {
+    const double buttonWidth = 120;
+    const double buttonHeight = 48;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      spacing: 20,
       children: [
-        TextButton(
-          onPressed: () async {
-            if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
-              await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Corrected JSON saved.')),
-                );
+        SizedBox(
+          width: buttonWidth,
+          height: buttonHeight,
+          child: TextButton(
+            onPressed: () async {
+              if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
+                await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Corrected JSON saved.')),
+                  );
+                }
               }
-            }
-          },
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          ),
-          child: Text(
-            "Save",
-            style: TextStyle(
-              fontSize: 18, // Increase font size
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            ),
+            child: Text(
+              "Save",
+              style: TextStyle(
+                fontSize: 18, // Increase font size
+              ),
             ),
           ),
         ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              if (_croppedBoxes.isNotEmpty) {
-                final box = _croppedBoxes[_currentBoxIndex];
-                box.isFlagged = !box.isFlagged;
-              }
-            });
-          },
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            backgroundColor: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
-                ? Colors.redAccent
-                : Colors.grey[800],
-          ),
-          child: Text(
-            _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged ? "Flagged" : "Flag",
-            style: TextStyle(
-              fontSize: 18,
-              color: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
-                  ? Colors.white
-                  : Colors.white,
+        const SizedBox(width: 20),
+        SizedBox(
+          width: buttonWidth,
+          height: buttonHeight,
+          child: TextButton(
+            onPressed: () {
+              setState(() {
+                if (_croppedBoxes.isNotEmpty) {
+                  final box = _croppedBoxes[_currentBoxIndex];
+                  box.isFlagged = !box.isFlagged;
+                }
+              });
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              backgroundColor: _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged
+                  ? Colors.redAccent
+                  : darkThemeValues[ThemeStyleKey.buttonColor],
+            ),
+            child: Text(
+              _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged ? "Flagged" : "Flag",
+              style: TextStyle(
+                fontSize: 18,
+              ),
             ),
           ),
-        )
+        ),
       ],
     );
   }
