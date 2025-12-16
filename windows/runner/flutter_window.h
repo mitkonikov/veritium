@@ -3,6 +3,9 @@
 
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+#include <flutter/encodable_value.h>
 
 #include <memory>
 
@@ -21,6 +24,11 @@ class FlutterWindow : public Win32Window {
   void OnDestroy() override;
   LRESULT MessageHandler(HWND window, UINT const message, WPARAM const wparam,
                          LPARAM const lparam) noexcept override;
+
+  void HandlePlatformChannel(
+    const std::string& method,
+    const flutter::EncodableValue* arguments,
+    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
  private:
   // The project to run.
