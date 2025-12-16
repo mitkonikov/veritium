@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:xml/xml.dart';
 import 'dart:convert';
@@ -58,12 +59,22 @@ class FileHandler {
 
   static Future<(String, List<BoundingBox>)> loadJsonFileWithPath() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
-    if (result == null || result.files.single.path == null) {
+    if (result == null || (result.files.single.path == null && result.files.single.bytes == null)) {
       throw Exception('No file selected.');
     }
-    String filePath = result.files.single.path!;
-    File file = File(filePath);
-    String fileContent = await file.readAsString();
+    String filePath = result.files.single.name;
+    String fileContent;
+    if (kIsWeb) {
+      // On web, use bytes
+      final bytes = result.files.single.bytes;
+      if (bytes == null) throw Exception('No file content.');
+      fileContent = utf8.decode(bytes);
+    } else {
+      // On desktop/mobile, use File
+      filePath = result.files.single.path!;
+      final file = File(filePath);
+      fileContent = await file.readAsString();
+    }
     final jsonData = jsonDecode(fileContent);
     List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
     List<BoundingBox> allBboxes = [];
@@ -102,11 +113,11 @@ class FileHandler {
         }
       }
     }
-    if (updated) {
-      // Make a backup of the original file
+    if (updated && !kIsWeb) {
+      // Only do file operations on non-web platforms
+      final file = File(filePath);
       final backupFile = File('$filePath.bak');
       await backupFile.writeAsString(fileContent);
-      // Save the modified JSON back to the file
       await file.writeAsString(JsonEncoder.withIndent('  ').convert(jsonData));
     }
     return (filePath, allBboxes);
@@ -114,6 +125,9 @@ class FileHandler {
 
   static Future<void> renderBoxes(String jsonFilePath, List<BoundingBox> allBboxes) async {
     String pdfFilePath = jsonFilePath.replaceAll('_middle.json', '_origin.pdf');
+    if (kIsWeb) {
+      throw UnsupportedError('PDF rendering is not supported in the browser. Please open the PDF file in your PDF viewer.');
+    }
     File pdfFile = File(pdfFilePath);
     if (!pdfFile.existsSync()) {
       throw Exception('PDF file not found: $pdfFilePath');
