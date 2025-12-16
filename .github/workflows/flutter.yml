@@ -26,6 +26,8 @@ jobs:
         run: flutter analyze
       - name: Run tests
         run: flutter test
+      - name: Remove WASM dependencies
+        run: dart run pdfrx:remove_wasm_modules
   
   build-windows:
     name: Build Windows Release
@@ -43,6 +45,8 @@ jobs:
         run: flutter analyze
       - name: Run tests
         run: flutter test
+      - name: Remove WASM dependencies
+        run: dart run pdfrx:remove_wasm_modules
       - name: Build Windows Release
         run: flutter build windows --release
       - name: Upload Release Artifact
