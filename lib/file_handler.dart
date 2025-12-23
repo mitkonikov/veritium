@@ -70,8 +70,7 @@ class FileHandler {
     return (filePath, allBboxes);
   }
 
-  static Future<void> renderBoxes(String jsonFilePath, List<BoundingBox> allBboxes) async {
-    String pdfFilePath = jsonFilePath.replaceAll('_middle.json', '_origin.pdf');
+  static Future<void> renderBoxes(String pdfFilePath, List<BoundingBox> allBboxes, bool spans) async {
     File pdfFile = File(pdfFilePath);
     if (!pdfFile.existsSync()) {
       throw Exception('PDF file not found: $pdfFilePath');
@@ -108,8 +107,13 @@ class FileHandler {
           );
           final cropped = await recorder.endRecording().toImage(width, height);
           final pngBytes = await cropped.toByteData(format: ui.ImageByteFormat.png);
-          bbox.croppedImage = cropped;
-          bbox.croppedPngBytes = pngBytes?.buffer.asUint8List();
+          if (spans) {
+            bbox.croppedSpans = cropped;
+            bbox.croppedSpansPngBytes = pngBytes?.buffer.asUint8List();
+          } else {
+            bbox.croppedImage = cropped;
+            bbox.croppedPngBytes = pngBytes?.buffer.asUint8List();
+          }
         }
       }
     }
@@ -200,6 +204,8 @@ class BoundingBox {
   List<MapEntry<String, String>> hashTextPairs;
   ui.Image? croppedImage;
   Uint8List? croppedPngBytes;
+  ui.Image? croppedSpans;
+  Uint8List? croppedSpansPngBytes;
   bool isFlagged;
 
   BoundingBox({

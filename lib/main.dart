@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'theme.dart';
 import 'package:flutter/material.dart';
@@ -58,11 +60,12 @@ class _CorrectionPageState extends State<CorrectionPage> {
 
   List<BoundingBox> _croppedBoxes = [];
   int _currentBoxIndex = 0;
+  bool _showSpans = false;
   String? _jsonFilePath;
 
   void _showCroppedImages(List<BoundingBox> boxes, {String? jsonFilePath}) {
     setState(() {
-      _croppedBoxes = boxes.where((b) => b.croppedPngBytes != null).toList();
+      _croppedBoxes = boxes.where((b) => b.croppedPngBytes != null || b.croppedSpansPngBytes != null).toList();
       _currentBoxIndex = 0;
       if (_croppedBoxes.isNotEmpty) {
         _textController.text = _croppedBoxes[0].text;
@@ -129,7 +132,19 @@ class _CorrectionPageState extends State<CorrectionPage> {
           await FileHandler.pdfrxInitialize();
           try {
             final (filePath, boxes) = await FileHandler.loadJsonFileWithPath();
-            await FileHandler.renderBoxes(filePath, boxes);
+            final pdfFilePathOriginal = filePath.replaceAll('_middle.json', '_origin.pdf');
+            final pdfFilePathSpans = filePath.replaceAll('_middle.json', '_span.pdf');
+            
+            final stopwatchOriginal = Stopwatch()..start();
+            await FileHandler.renderBoxes(pdfFilePathOriginal, boxes, false);
+            stopwatchOriginal.stop();
+            debugPrint('FileHandler.renderBoxes(original) elapsed: ${stopwatchOriginal.elapsedMilliseconds} ms');
+
+            final stopwatchSpans = Stopwatch()..start();
+            await FileHandler.renderBoxes(pdfFilePathSpans, boxes, true);
+            stopwatchSpans.stop();
+            debugPrint('FileHandler.renderBoxes(spans) elapsed: ${stopwatchSpans.elapsedMilliseconds} ms');
+            
             _showCroppedImages(boxes, jsonFilePath: filePath);
           } catch (e) {
             if (mounted) {
@@ -223,8 +238,20 @@ class _CorrectionPageState extends State<CorrectionPage> {
       );
     }
     final box = _croppedBoxes[_currentBoxIndex];
+    // Choose spans image if toggled and available, otherwise fallback to original cropped image
+    final bytes = (_showSpans && box.croppedSpansPngBytes != null) ? box.croppedSpansPngBytes : box.croppedPngBytes;
+    if (bytes == null) {
+      return const SizedBox(
+        height: 200,
+        width: fixedWidth,
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: Colors.black12),
+          child: Center(child: Text('No image available')),
+        ),
+      );
+    }
     return Image.memory(
-      box.croppedPngBytes!,
+      bytes,
       width: fixedWidth,
       fit: BoxFit.contain,
     );
@@ -304,63 +331,63 @@ class _CorrectionPageState extends State<CorrectionPage> {
   }
 
   Widget _buildButtons() {
-    const double buttonWidth = 120;
-    const double buttonHeight = 48;
+    const double buttonSize = 38;
     final bool isFlagged = _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(
-          width: buttonWidth,
-          height: buttonHeight,
-          child: TextButton(
-            onPressed: () async {
-              if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
-                await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Corrected JSON saved.')),
-                  );
-                }
-              }
-            },
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            ),
-            child: Text(
-              "Save",
-              style: TextStyle(
-                fontSize: 18, // Increase font size
-              ),
-            ),
+        IconButton(
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(),
+          icon: Icon(
+            Icons.save,
+            size: buttonSize,
+            color: darkThemeValues[ThemeStyleKey.fontPrimaryColor],
           ),
+          tooltip: 'Save',
+          onPressed: () async {
+            if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
+              await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Corrected JSON saved.')),
+                );
+              }
+            }
+          },
         ),
         const SizedBox(width: 20),
-        SizedBox(
-          width: buttonWidth,
-          height: buttonHeight,
-          child: TextButton(
-            onPressed: () {
-              setState(() {
-                if (_croppedBoxes.isNotEmpty) {
-                  final box = _croppedBoxes[_currentBoxIndex];
-                  box.isFlagged = !box.isFlagged;
-                }
-              });
-            },
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              backgroundColor: isFlagged
-                  ? Colors.redAccent
-                  : darkThemeValues[ThemeStyleKey.buttonColor],
-            ),
-            child: Text(
-              isFlagged ? "Flagged" : "Flag",
-              style: TextStyle(
-                fontSize: 18
-              ),
-            ),
+        IconButton(
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(),
+          icon: Icon(
+            isFlagged ? Icons.flag : Icons.outlined_flag,
+            size: buttonSize,
+            color: isFlagged ? Colors.red : darkThemeValues[ThemeStyleKey.fontPrimaryColor],
           ),
+          tooltip: isFlagged ? 'Flagged' : 'Flag',
+          onPressed: () {
+            setState(() {
+              if (_croppedBoxes.isNotEmpty) {
+                final box = _croppedBoxes[_currentBoxIndex];
+                box.isFlagged = !box.isFlagged;
+              }
+            });
+          },
+        ),
+        const SizedBox(width: 20),
+        // Toggle button to switch between spans and original cropped images
+        IconButton(
+          icon: Icon(
+            _showSpans ? Icons.image : Icons.layers,
+            size: buttonSize
+          ),
+          tooltip: _showSpans ? 'Show original' : 'Show spans',
+          onPressed: () {
+            setState(() {
+              _showSpans = !_showSpans;
+            });
+          },
         ),
       ],
     );
