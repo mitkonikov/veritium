@@ -136,12 +136,12 @@ class _CorrectionPageState extends State<CorrectionPage> {
             final pdfFilePathSpans = filePath.replaceAll('_middle.json', '_span.pdf');
             
             final stopwatchOriginal = Stopwatch()..start();
-            await FileHandler.renderBoxes(pdfFilePathOriginal, boxes, false);
+            await FileHandler.renderBoxes(pdfFilePathOriginal, boxes, false, 150);
             stopwatchOriginal.stop();
             debugPrint('FileHandler.renderBoxes(original) elapsed: ${stopwatchOriginal.elapsedMilliseconds} ms');
 
             final stopwatchSpans = Stopwatch()..start();
-            await FileHandler.renderBoxes(pdfFilePathSpans, boxes, true);
+            await FileHandler.renderBoxes(pdfFilePathSpans, boxes, true, 150);
             stopwatchSpans.stop();
             debugPrint('FileHandler.renderBoxes(spans) elapsed: ${stopwatchSpans.elapsedMilliseconds} ms');
             

@@ -70,7 +70,7 @@ class FileHandler {
     return (filePath, allBboxes);
   }
 
-  static Future<void> renderBoxes(String pdfFilePath, List<BoundingBox> allBboxes, bool spans) async {
+  static Future<void> renderBoxes(String pdfFilePath, List<BoundingBox> allBboxes, bool spans, double dpi) async {
     File pdfFile = File(pdfFilePath);
     if (!pdfFile.existsSync()) {
       throw Exception('PDF file not found: $pdfFilePath');
@@ -86,7 +86,10 @@ class FileHandler {
       List<BoundingBox> pageBboxes = entry.value;
       if (pageIndex < doc.pages.length) {
         final page = doc.pages[pageIndex];
-        final pageImage = await page.render();
+        final pageImage = await page.render(
+          fullWidth: page.width * (dpi / 72),
+          fullHeight: page.height * (dpi / 72),
+        );
         final img = await pageImage?.createImage();
         if (img == null) continue;
         final double scaleX = img.width / page.width;
