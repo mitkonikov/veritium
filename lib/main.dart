@@ -65,13 +65,16 @@ class _CorrectionPageState extends State<CorrectionPage> {
   double _renderProgress = 0.0;
   String? _renderLabel;
   String? _jsonFilePath;
+  bool _viewOnlyFlagged = false;
+
+  List<BoundingBox> get _visibleBoxes => _viewOnlyFlagged ? _croppedBoxes.where((b) => b.isFlagged).toList() : _croppedBoxes;
 
   void _showCroppedImages(List<BoundingBox> boxes, {String? jsonFilePath}) {
     setState(() {
       _croppedBoxes = boxes.where((b) => b.croppedPngBytes != null || b.croppedSpansPngBytes != null).toList();
       _currentBoxIndex = 0;
-      if (_croppedBoxes.isNotEmpty) {
-        _textController.text = _croppedBoxes[0].text;
+      if (_visibleBoxes.isNotEmpty) {
+        _textController.text = _visibleBoxes[0].text;
       }
       if (jsonFilePath != null) {
         _jsonFilePath = jsonFilePath;
@@ -82,7 +85,11 @@ class _CorrectionPageState extends State<CorrectionPage> {
   void _onNavigateToBox(int newIndex) {
     setState(() {
       _currentBoxIndex = newIndex;
-      _textController.text = _croppedBoxes[_currentBoxIndex].text;
+      if (_visibleBoxes.isNotEmpty && _currentBoxIndex < _visibleBoxes.length) {
+        _textController.text = _visibleBoxes[_currentBoxIndex].text;
+      } else {
+        _textController.text = '';
+      }
     });
   }
 
@@ -99,6 +106,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             child: Row(
               children: (!kIsWeb) ? [
                 _buildMenuItem('File', ['Load JSON', 'Save JSON']),
+                _buildMenuItem('View', ['View Only Flagged', 'View All']),
                 const Spacer(),
                 _buildWindowControls(),
               ] : [
@@ -119,21 +127,21 @@ class _CorrectionPageState extends State<CorrectionPage> {
                     child: _buildRenderProgress(),
                   ),
                   const SizedBox(height: 24),
-                  if (_croppedBoxes.isEmpty)
+                  if (_visibleBoxes.isEmpty)
                     const Text(
                       'Preparing images...',
                       style: TextStyle(fontSize: 18, color: Colors.white70),
                     ),
-                  if (_croppedBoxes.isNotEmpty) ...[
+                  if (_visibleBoxes.isNotEmpty) ...[
                     _buildCorrectionPanel(),
                     _croppedImageNavigation(),
                     _buildButtons(),
                   ]
                 ],
               )
-            : (_croppedBoxes.isEmpty
-                ? const Text(
-                    'Please load a file to begin.',
+            : (_visibleBoxes.isEmpty
+                ? Text(
+                    (_croppedBoxes.isEmpty ? 'Please load a file to begin.' : 'No flagged images.'),
                     style: TextStyle(fontSize: 22, color: Colors.white70),
                   )
                 : Column(
@@ -218,6 +226,22 @@ class _CorrectionPageState extends State<CorrectionPage> {
           }
         } else if (value == 'Save JSON') {
           await FileHandler.saveNewCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
+        } else if (value == 'View Only Flagged') {
+          setState(() {
+            _currentBoxIndex = 0;
+            _viewOnlyFlagged = true;
+            if (_visibleBoxes.isNotEmpty) {
+              _textController.text = _visibleBoxes[0].text;
+            }
+          });
+        } else if (value == 'View All') {
+          setState(() {
+            _viewOnlyFlagged = false;
+            _currentBoxIndex = 0;
+            if (_visibleBoxes.isNotEmpty) {
+              _textController.text = _visibleBoxes[0].text;
+            }
+          });
         }
         // Handle other menu actions here
       },
@@ -303,7 +327,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
 
   Widget _croppedImageViewer() {
     const double fixedWidth = 600;
-    if (_croppedBoxes.isEmpty) {
+    if (_visibleBoxes.isEmpty) {
       return const SizedBox(
         height: 200,
         width: fixedWidth,
@@ -313,7 +337,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
         ),
       );
     }
-    final box = _croppedBoxes[_currentBoxIndex];
+    final box = _visibleBoxes[_currentBoxIndex];
     // Choose spans image if toggled and available, otherwise fallback to original cropped image
     final bytes = (_showSpans && box.croppedSpansPngBytes != null) ? box.croppedSpansPngBytes : box.croppedPngBytes;
     if (bytes == null) {
@@ -334,7 +358,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
   }
 
   Widget _croppedImageNavigation() {
-    if (_croppedBoxes.isEmpty) return const SizedBox.shrink();
+    if (_visibleBoxes.isEmpty) return const SizedBox.shrink();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       spacing: 10,
@@ -345,10 +369,10 @@ class _CorrectionPageState extends State<CorrectionPage> {
               ? () => _onNavigateToBox(_currentBoxIndex - 1)
               : null,
         ),
-        Text('${_currentBoxIndex + 1} / ${_croppedBoxes.length}'),
+        Text('${_currentBoxIndex + 1} / ${_visibleBoxes.length}'),
         IconButton(
           icon: const Icon(Icons.arrow_right),
-          onPressed: _currentBoxIndex < _croppedBoxes.length - 1
+          onPressed: _currentBoxIndex < _visibleBoxes.length - 1
               ? () => _onNavigateToBox(_currentBoxIndex + 1)
               : null,
         ),
@@ -384,16 +408,17 @@ class _CorrectionPageState extends State<CorrectionPage> {
   }
 
   Widget _buildCorrectionTextField() {
-    final box = _croppedBoxes.isNotEmpty ? _croppedBoxes[_currentBoxIndex] : null;
+    final box = _visibleBoxes.isNotEmpty ? _visibleBoxes[_currentBoxIndex] : null;
     final int lineCount = box?.text.split('\n').length ?? 1;
     final int imageHeight = box?.croppedImage?.height ?? 200;
     final double fontSize = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.4;
     return TextField(
       controller: _textController,
       onChanged: (value) {
-        if (_croppedBoxes.isNotEmpty) {
+        if (_visibleBoxes.isNotEmpty) {
           setState(() {
-            _croppedBoxes[_currentBoxIndex].updateText(value);
+            final b = _visibleBoxes[_currentBoxIndex];
+            b.updateText(value);
           });
         }
       },
@@ -408,7 +433,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
 
   Widget _buildButtons() {
     const double buttonSize = 38;
-    final bool isFlagged = _croppedBoxes.isNotEmpty && _croppedBoxes[_currentBoxIndex].isFlagged;
+    final bool isFlagged = _visibleBoxes.isNotEmpty && _visibleBoxes[_currentBoxIndex].isFlagged;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -444,9 +469,18 @@ class _CorrectionPageState extends State<CorrectionPage> {
           tooltip: isFlagged ? 'Flagged' : 'Flag',
           onPressed: () {
             setState(() {
-              if (_croppedBoxes.isNotEmpty) {
-                final box = _croppedBoxes[_currentBoxIndex];
+              if (_visibleBoxes.isNotEmpty) {
+                final box = _visibleBoxes[_currentBoxIndex];
                 box.isFlagged = !box.isFlagged;
+                // If filtering for flagged only and we unflagged the item, clamp index
+                if (_viewOnlyFlagged && !_visibleBoxes.contains(box)) {
+                  _currentBoxIndex = 0;
+                  if (_visibleBoxes.isNotEmpty) {
+                    _textController.text = _visibleBoxes[0].text;
+                  } else {
+                    _textController.text = 'No image available';
+                  }
+                }
               }
             });
           },
