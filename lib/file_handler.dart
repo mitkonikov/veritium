@@ -70,7 +70,13 @@ class FileHandler {
     return (filePath, allBboxes);
   }
 
-  static Future<void> renderBoxes(String pdfFilePath, List<BoundingBox> allBboxes, bool spans, double dpi) async {
+  static Future<void> renderBoxes(
+    String pdfFilePath,
+    List<BoundingBox> allBboxes,
+    bool spans,
+    double dpi, {
+    void Function(int processed, int total)? onProgress,
+  }) async {
     File pdfFile = File(pdfFilePath);
     if (!pdfFile.existsSync()) {
       throw Exception('PDF file not found: $pdfFilePath');
@@ -81,6 +87,8 @@ class FileHandler {
     for (var bbox in allBboxes) {
       bboxesByPage.putIfAbsent(bbox.pageIndex, () => []).add(bbox);
     }
+    final int totalBoxes = bboxesByPage.values.fold<int>(0, (s, e) => s + e.length);
+    int processedBoxes = 0;
     for (var entry in bboxesByPage.entries) {
       int pageIndex = entry.key;
       List<BoundingBox> pageBboxes = entry.value;
@@ -116,6 +124,13 @@ class FileHandler {
           } else {
             bbox.croppedImage = cropped;
             bbox.croppedPngBytes = pngBytes?.buffer.asUint8List();
+          }
+          // update progress
+          processedBoxes += 1;
+          if (onProgress != null) {
+            try {
+              onProgress(processedBoxes, totalBoxes);
+            } catch (_) {}
           }
         }
       }

@@ -61,6 +61,9 @@ class _CorrectionPageState extends State<CorrectionPage> {
   List<BoundingBox> _croppedBoxes = [];
   int _currentBoxIndex = 0;
   bool _showSpans = false;
+  bool _isRendering = false;
+  double _renderProgress = 0.0;
+  String? _renderLabel;
   String? _jsonFilePath;
 
   void _showCroppedImages(List<BoundingBox> boxes, {String? jsonFilePath}) {
@@ -106,20 +109,42 @@ class _CorrectionPageState extends State<CorrectionPage> {
         ),
       ),
       body: Center(
-        child: _croppedBoxes.isEmpty
-            ? const Text(
-                'Please load a file to begin.',
-                style: TextStyle(fontSize: 22, color: Colors.white70),
-              )
-            : Column(
+        child: _isRendering
+            ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 spacing: 10,
                 children: [
-                  _buildCorrectionPanel(),
-                  _croppedImageNavigation(),
-                  _buildButtons()
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 48.0),
+                    child: _buildRenderProgress(),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_croppedBoxes.isEmpty)
+                    const Text(
+                      'Preparing images...',
+                      style: TextStyle(fontSize: 18, color: Colors.white70),
+                    ),
+                  if (_croppedBoxes.isNotEmpty) ...[
+                    _buildCorrectionPanel(),
+                    _croppedImageNavigation(),
+                    _buildButtons(),
+                  ]
                 ],
-              ),
+              )
+            : (_croppedBoxes.isEmpty
+                ? const Text(
+                    'Please load a file to begin.',
+                    style: TextStyle(fontSize: 22, color: Colors.white70),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 10,
+                    children: [
+                      _buildCorrectionPanel(),
+                      _croppedImageNavigation(),
+                      _buildButtons()
+                    ],
+                  )),
       ),
     );
   }
@@ -135,15 +160,53 @@ class _CorrectionPageState extends State<CorrectionPage> {
             final pdfFilePathOriginal = filePath.replaceAll('_middle.json', '_origin.pdf');
             final pdfFilePathSpans = filePath.replaceAll('_middle.json', '_span.pdf');
             
+            setState(() {
+              _isRendering = true;
+              _renderProgress = 0.0;
+              _renderLabel = 'Rendering original';
+            });
             final stopwatchOriginal = Stopwatch()..start();
-            await FileHandler.renderBoxes(pdfFilePathOriginal, boxes, false, 150);
+            await FileHandler.renderBoxes(
+              pdfFilePathOriginal,
+              boxes,
+              false,
+              150,
+              onProgress: (processed, total) {
+                if (mounted) {
+                  setState(() {
+                    _renderProgress = total > 0 ? processed / total : 0.0;
+                  });
+                }
+              },
+            );
             stopwatchOriginal.stop();
             debugPrint('FileHandler.renderBoxes(original) elapsed: ${stopwatchOriginal.elapsedMilliseconds} ms');
 
+            setState(() {
+              _renderLabel = 'Rendering spans';
+              _renderProgress = 0.0;
+            });
             final stopwatchSpans = Stopwatch()..start();
-            await FileHandler.renderBoxes(pdfFilePathSpans, boxes, true, 150);
+            await FileHandler.renderBoxes(
+              pdfFilePathSpans,
+              boxes,
+              true,
+              150,
+              onProgress: (processed, total) {
+                if (mounted) {
+                  setState(() {
+                    _renderProgress = total > 0 ? processed / total : 0.0;
+                  });
+                }
+              },
+            );
             stopwatchSpans.stop();
             debugPrint('FileHandler.renderBoxes(spans) elapsed: ${stopwatchSpans.elapsedMilliseconds} ms');
+            setState(() {
+              _isRendering = false;
+              _renderProgress = 0.0;
+              _renderLabel = null;
+            });
             
             _showCroppedImages(boxes, jsonFilePath: filePath);
           } catch (e) {
@@ -221,6 +284,19 @@ class _CorrectionPageState extends State<CorrectionPage> {
           hoverIcon: Icons.close,
           hoverIconColor: darkThemeValues[ThemeStyleKey.fontPrimaryColor],
         ),
+      ],
+    );
+  }
+
+  Widget _buildRenderProgress() {
+    return Column(
+      children: [
+        LinearProgressIndicator(value: _renderProgress),
+        if (_renderLabel != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6.0),
+            child: Text(_renderLabel!, style: const TextStyle(color: Colors.white70)),
+          ),
       ],
     );
   }
