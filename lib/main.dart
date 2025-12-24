@@ -408,27 +408,63 @@ class _CorrectionPageState extends State<CorrectionPage> {
   }
 
   Widget _buildCorrectionTextField() {
-    final box = _visibleBoxes.isNotEmpty ? _visibleBoxes[_currentBoxIndex] : null;
-    final int lineCount = box?.text.split('\n').length ?? 1;
-    final int imageHeight = box?.croppedImage?.height ?? 200;
-    final double fontSize = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.4;
-    return TextField(
-      controller: _textController,
-      onChanged: (value) {
-        if (_visibleBoxes.isNotEmpty) {
-          setState(() {
-            final b = _visibleBoxes[_currentBoxIndex];
-            b.updateText(value);
-          });
+    return LayoutBuilder(builder: (context, constraints) {
+      final box = _visibleBoxes.isNotEmpty ? _visibleBoxes[_currentBoxIndex] : null;
+      final int lineCount = box?.text.split('\n').length ?? 1;
+      final int imageHeight = box?.croppedImage?.height ?? 200;
+      final double maxFont = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.5;
+      const double minFont = 8.0;
+      final double horizontalPadding = 38.0; // adjust if your TextField has different padding
+      final double availableWidth = constraints.maxWidth - horizontalPadding;
+
+      double fitFont(String text) {
+        if (text.isEmpty) return maxFont;
+        double lo = minFont;
+        double hi = maxFont;
+        while (hi - lo > 0.5) {
+          final mid = (lo + hi) / 2;
+          final lines = text.split('\n');
+          bool anyOverflow = false;
+          for (final line in lines) {
+            final tp = TextPainter(
+              text: TextSpan(text: line, style: TextStyle(fontSize: mid)),
+              textDirection: TextDirection.ltr,
+            )..layout(minWidth: 0, maxWidth: double.infinity);
+            if (tp.width >= availableWidth) {
+              anyOverflow = true;
+              break;
+            }
+          }
+          if (anyOverflow) {
+            hi = mid;
+          } else {
+            lo = mid;
+          }
         }
-      },
-      maxLines: null,
-      style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
-      decoration: InputDecoration(
-        border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-        hintText: 'Enter text here',
-      ),
-    );
+        return lo;
+      }
+
+      final double fontSize = fitFont(box?.text ?? '');
+
+      return TextField(
+        controller: _textController,
+        onChanged: (value) {
+          if (_visibleBoxes.isNotEmpty) {
+            setState(() {
+              final b = _visibleBoxes[_currentBoxIndex];
+              b.updateText(value);
+            });
+          }
+        },
+        maxLines: null,
+        style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
+        decoration: const InputDecoration(
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+          hintText: 'Enter text here',
+        ),
+      );
+    });
   }
 
   Widget _buildButtons() {
