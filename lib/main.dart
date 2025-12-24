@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/services.dart';
 import 'theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'file_handler.dart';
+import 'keyboard.dart';
 
 // Platform channel for custom window controls
 class WindowControls {
@@ -58,6 +57,61 @@ class _CorrectionPageState extends State<CorrectionPage> {
     super.dispose();
   }
 
+  BoundingBox? _currentVisibleBox() {
+    if (_visibleBoxes.isEmpty) return null;
+    if (_currentBoxIndex < 0) return null;
+    if (_currentBoxIndex >= _visibleBoxes.length) return null;
+    return _visibleBoxes[_currentBoxIndex];
+  }
+
+  Future<void> _saveCurrent() async {
+    if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
+      await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Corrected JSON saved.')),
+        );
+      }
+    }
+  }
+
+  void _toggleFlagCurrent() {
+    setState(() {
+      final box = _currentVisibleBox();
+      if (box != null) {
+        box.isFlagged = !box.isFlagged;
+        if (_viewOnlyFlagged && !_visibleBoxes.contains(box)) {
+          _currentBoxIndex = 0;
+          if (_visibleBoxes.isNotEmpty) {
+            _textController.text = _visibleBoxes[0].text;
+          } else {
+            _textController.text = 'No image available';
+          }
+        }
+      }
+    });
+  }
+
+  void _navigateToIndex(int newIndex) {
+    if (_visibleBoxes.isEmpty) return;
+    final int clamped = newIndex.clamp(0, _visibleBoxes.length - 1);
+    setState(() {
+      _currentBoxIndex = clamped;
+      _textController.text = _visibleBoxes[_currentBoxIndex].text;
+    });
+  }
+
+  void _navigatePrev() => _navigateToIndex(_currentBoxIndex - 1);
+  void _navigateNext() => _navigateToIndex(_currentBoxIndex + 1);
+
+  void _onTextChangedHandler(String value) {
+    if (_currentVisibleBox() != null) {
+      setState(() {
+        _currentVisibleBox()!.updateText(value);
+      });
+    }
+  }
+
   List<BoundingBox> _croppedBoxes = [];
   int _currentBoxIndex = 0;
   bool _showSpans = false;
@@ -83,77 +137,76 @@ class _CorrectionPageState extends State<CorrectionPage> {
   }
 
   void _onNavigateToBox(int newIndex) {
-    setState(() {
-      _currentBoxIndex = newIndex;
-      if (_visibleBoxes.isNotEmpty && _currentBoxIndex < _visibleBoxes.length) {
-        _textController.text = _visibleBoxes[_currentBoxIndex].text;
-      } else {
-        _textController.text = '';
-      }
-    });
+    _navigateToIndex(newIndex);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(40),
-        child: AppBar(
-          backgroundColor: Colors.grey[850],
-          title: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onPanStart: (_) => WindowControls.startDrag(),
-            child: Row(
-              children: (!kIsWeb) ? [
-                _buildMenuItem('File', ['Load JSON', 'Save JSON']),
-                _buildMenuItem('View', ['View Only Flagged', 'View All']),
-                const Spacer(),
-                _buildWindowControls(),
-              ] : [
-                _buildMenuItem('File', ['Load JSON', 'Save JSON']),
-              ],
+    return KeyboardShortcuts(
+      onPrev: _navigatePrev,
+      onNext: _navigateNext,
+      onSave: _saveCurrent,
+      onFlag: _toggleFlagCurrent,
+      child: Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(40),
+          child: AppBar(
+            backgroundColor: Colors.grey[850],
+            title: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onPanStart: (_) => WindowControls.startDrag(),
+              child: Row(
+                children: (!kIsWeb) ? [
+                  _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Show Keyboard Shortcuts']),
+                  _buildMenuItem('View', ['View Only Flagged', 'View All']),
+                  const Spacer(),
+                  _buildWindowControls(),
+                ] : [
+                  _buildMenuItem('File', ['Load JSON', 'Save JSON']),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-      body: Center(
-        child: _isRendering
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                spacing: 10,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 48.0),
-                    child: _buildRenderProgress(),
-                  ),
-                  const SizedBox(height: 24),
-                  if (_visibleBoxes.isEmpty)
-                    const Text(
-                      'Preparing images...',
-                      style: TextStyle(fontSize: 18, color: Colors.white70),
+        body: Center(
+          child: _isRendering
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  spacing: 10,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 48.0),
+                      child: _buildRenderProgress(),
                     ),
-                  if (_visibleBoxes.isNotEmpty) ...[
-                    _buildCorrectionPanel(),
-                    _croppedImageNavigation(),
-                    _buildButtons(),
-                  ]
-                ],
-              )
-            : (_visibleBoxes.isEmpty
-                ? Text(
-                    (_croppedBoxes.isEmpty ? 'Please load a file to begin.' : 'No flagged images.'),
-                    style: TextStyle(fontSize: 22, color: Colors.white70),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: 10,
-                    children: [
+                    const SizedBox(height: 24),
+                    if (_visibleBoxes.isEmpty)
+                      const Text(
+                        'Preparing images...',
+                        style: TextStyle(fontSize: 18, color: Colors.white70),
+                      ),
+                    if (_visibleBoxes.isNotEmpty) ...[
                       _buildCorrectionPanel(),
                       _croppedImageNavigation(),
-                      _buildButtons()
-                    ],
-                  )),
-      ),
+                      _buildButtons(),
+                    ]
+                  ],
+                )
+              : (_visibleBoxes.isEmpty
+                  ? Text(
+                      (_croppedBoxes.isEmpty ? 'Please load a file to begin.' : 'No flagged images.'),
+                      style: TextStyle(fontSize: 22, color: Colors.white70),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: 10,
+                      children: [
+                        _buildCorrectionPanel(),
+                        _croppedImageNavigation(),
+                        _buildButtons()
+                      ],
+                    )),
+        ),
+      )
     );
   }
 
@@ -225,7 +278,43 @@ class _CorrectionPageState extends State<CorrectionPage> {
             }
           }
         } else if (value == 'Save JSON') {
-          await FileHandler.saveNewCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
+          if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
+            await FileHandler.saveNewCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No file loaded to save.')),
+              );
+            }
+          }
+        } else if (value == 'Show Keyboard Shortcuts') {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Keyboard Shortcuts'),
+              shape: ShapeBorder.lerp(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+                0,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('F7 — Previous item'),
+                  SizedBox(height: 8),
+                  Text('F8 — Next item'),
+                  SizedBox(height: 8),
+                  Text('Ctrl+S — Save corrected JSON'),
+                  SizedBox(height: 8),
+                  Text('Ctrl+F — Toggle flag on current item'),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+              ],
+            ),
+          );
         } else if (value == 'View Only Flagged') {
           setState(() {
             _currentBoxIndex = 0;
@@ -448,14 +537,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
 
       return TextField(
         controller: _textController,
-        onChanged: (value) {
-          if (_visibleBoxes.isNotEmpty) {
-            setState(() {
-              final b = _visibleBoxes[_currentBoxIndex];
-              b.updateText(value);
-            });
-          }
-        },
+        onChanged: _onTextChangedHandler,
         maxLines: null,
         style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
         decoration: const InputDecoration(
@@ -482,16 +564,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             color: darkThemeValues[ThemeStyleKey.fontPrimaryColor],
           ),
           tooltip: 'Save',
-          onPressed: () async {
-            if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
-              await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Corrected JSON saved.')),
-                );
-              }
-            }
-          },
+          onPressed: _saveCurrent,
         ),
         const SizedBox(width: 20),
         IconButton(
@@ -503,23 +576,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             color: isFlagged ? Colors.red : darkThemeValues[ThemeStyleKey.fontPrimaryColor],
           ),
           tooltip: isFlagged ? 'Flagged' : 'Flag',
-          onPressed: () {
-            setState(() {
-              if (_visibleBoxes.isNotEmpty) {
-                final box = _visibleBoxes[_currentBoxIndex];
-                box.isFlagged = !box.isFlagged;
-                // If filtering for flagged only and we unflagged the item, clamp index
-                if (_viewOnlyFlagged && !_visibleBoxes.contains(box)) {
-                  _currentBoxIndex = 0;
-                  if (_visibleBoxes.isNotEmpty) {
-                    _textController.text = _visibleBoxes[0].text;
-                  } else {
-                    _textController.text = 'No image available';
-                  }
-                }
-              }
-            });
-          },
+          onPressed: _toggleFlagCurrent,
         ),
         const SizedBox(width: 20),
         // Toggle button to switch between spans and original cropped images
