@@ -5,25 +5,25 @@ All notable changes to this project will be documented in this file.
 ## Release 2.0.0 - 2026-01-02
 
 ### Breaking Changes
-- Flags and comments are now saved in the bounding box data structure instead of in the spans. (f4b925f)
+- Flags and comments are now saved in the bounding box data structure instead of in the spans. ([f4b925f](https://github.com/mitkonikov/veritium/commit/f4b925f2061904206d6cceb52346d8277f5c4f14))
 
 ### Added
-- Support for displaying OCR internal spans. (bef5599)
-- Support for comments on bounding boxes. (f4b925f)
-- Add ability to filter only boxes with comments. (ea5e797)
-- Add Goto dialog to jump to a specific item. (4374d8f)
-- UI Text & widget scaling (UI Scale) with live slider. (9a1387b)
-- Keyboard shortcuts (F7/F8, Ctrl+S, Ctrl+F). (ac98e66)
-- Progress bar for loading/rendering PDF files. (e9e9a13)
+- Support for displaying OCR internal spans. ([bef5599](https://github.com/mitkonikov/veritium/commit/bef55995268198b0e04c4cedb5612e388502441a))
+- Support for comments on bounding boxes. ([f4b925f](https://github.com/mitkonikov/veritium/commit/f4b925f2061904206d6cceb52346d8277f5c4f14))
+- Add ability to filter only boxes with comments. ([ea5e797](https://github.com/mitkonikov/veritium/commit/ea5e797b9d0c4477773580fba7a1cbe1c977b694))
+- Add Goto dialog to jump to a specific item. ([cb40e2d](https://github.com/mitkonikov/veritium/commit/cb40e2d5139197ec677a8bbf83b78fc30a1128a3))
+- UI Text & widget scaling (UI Scale) with live slider. ([9a1387b](https://github.com/mitkonikov/veritium/commit/9a1387b9d3aa42b786d310ce2f9fe6fa501b0896))
+- Keyboard shortcuts (F7/F8, Ctrl+S, Ctrl+F). ([ac98e66](https://github.com/mitkonikov/veritium/commit/ac98e66eacad60a7d4b36338f8a9e2c317496255))
+- Progress bar for loading/rendering PDF files. ([e9e9a13](https://github.com/mitkonikov/veritium/commit/e9e9a1393b52137fa264d351a6186ae44a36ab41))
 
 ### Changed
-- Save icon now visually indicates unsaved changes. (b1e32b1)
-- Binary-search font sizing in correction text field to fit lines. (330010c)
-- Increased PDF rendering DPI for improved image quality. (ba48f65)
+- Save icon now visually indicates unsaved changes. ([b1e32b1](https://github.com/mitkonikov/veritium/commit/b1e32b1f64f1e32f9102003a5e8484ce1634a2a2))
+- Binary-search font sizing in correction text field to fit lines. ([330010c](https://github.com/mitkonikov/veritium/commit/330010cd2c2ccf103080d63b90e6dac0bfcf4a52))
+- Increased PDF rendering DPI for improved image quality. ([ba48f65](https://github.com/mitkonikov/veritium/commit/ba48f6539ffd27aeccdbf86925bc2a7656eb9c05))
 
 ### Refactor
-- Separated custom Windows controls into their own widget/file. (20ae1df)
-- Add few tests for loading example JSON files. (7a895b6)
+- Separated custom Windows controls into their own widget/file. ([20ae1df](https://github.com/mitkonikov/veritium/commit/20ae1dfeeaa9dd254b7b03bb61ab90266b13a805))
+- Add few tests for loading example JSON files. ([7a895b6](https://github.com/mitkonikov/veritium/commit/7a895b68807813f60c8dd63cf2c6fc013a97c50c))
 
 ---
 
