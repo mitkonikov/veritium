@@ -679,15 +679,16 @@ class _CorrectionPageState extends State<CorrectionPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          padding: const EdgeInsets.all(8),
-          constraints: const BoxConstraints(),
           icon: Icon(
-            Icons.save,
-            size: buttonSize,
-            color: _hasUnsavedChanges ? Colors.orangeAccent : darkThemeValues[ThemeStyleKey.fontPrimaryColor],
+            _showSpans ? Icons.image : Icons.layers,
+            size: buttonSize
           ),
-          tooltip: _hasUnsavedChanges ? 'Save (unsaved changes)' : 'Save',
-          onPressed: _saveCurrent,
+          tooltip: _showSpans ? 'Show original' : 'Show spans',
+          onPressed: () {
+            setState(() {
+              _showSpans = !_showSpans;
+            });
+          },
         ),
         const SizedBox(width: 20),
         IconButton(
@@ -773,18 +774,16 @@ class _CorrectionPageState extends State<CorrectionPage> {
           }
         ),
         const SizedBox(width: 20),
-        // Toggle button to switch between spans and original cropped images
         IconButton(
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(),
           icon: Icon(
-            _showSpans ? Icons.image : Icons.layers,
-            size: buttonSize
+            Icons.save,
+            size: buttonSize,
+            color: _hasUnsavedChanges ? Colors.orangeAccent : darkThemeValues[ThemeStyleKey.fontPrimaryColor],
           ),
-          tooltip: _showSpans ? 'Show original' : 'Show spans',
-          onPressed: () {
-            setState(() {
-              _showSpans = !_showSpans;
-            });
-          },
+          tooltip: _hasUnsavedChanges ? 'Save (unsaved changes)' : 'Save',
+          onPressed: _saveCurrent,
         ),
       ],
     );
