@@ -624,7 +624,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
       final box = _visibleBoxes.isNotEmpty ? _visibleBoxes[_currentBoxIndex] : null;
       final int lineCount = box?.text.split('\n').length ?? 1;
       final int imageHeight = box?.croppedImage?.height ?? 200;
-      final double maxFont = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.5;
+      final double maxFont = (imageHeight / lineCount).clamp(12, 32).toDouble() * 0.83;
       const double minFont = 8.0;
       final double horizontalPadding = 38.0; // adjust if your TextField has different padding
       final double availableWidth = constraints.maxWidth - horizontalPadding;
