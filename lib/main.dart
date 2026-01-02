@@ -133,9 +133,14 @@ class _CorrectionPageState extends State<CorrectionPage> {
   String? _renderLabel;
   String? _jsonFilePath;
   bool _viewOnlyFlagged = false;
+  bool _viewOnlyCommented = false;
   bool get _hasUnsavedChanges => _croppedBoxes.any((b) => b.isDirty);
 
-  List<BoundingBox> get _visibleBoxes => _viewOnlyFlagged ? _croppedBoxes.where((b) => b.isFlagged).toList() : _croppedBoxes;
+  List<BoundingBox> get _visibleBoxes {
+    if (_viewOnlyFlagged) return _croppedBoxes.where((b) => b.isFlagged).toList();
+    if (_viewOnlyCommented) return _croppedBoxes.where((b) => b.comment.isNotEmpty).toList();
+    return _croppedBoxes;
+  }
 
   void _showCroppedImages(List<BoundingBox> boxes, {String? jsonFilePath}) {
     setState(() {
@@ -172,7 +177,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
               child: Row(
                 children: (!kIsWeb) ? [
                   _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Show Keyboard Shortcuts']),
-                  _buildMenuItem('View', ['View Only Flagged', 'View All', 'UI Scale']),
+                              _buildMenuItem('View', ['View Only Flagged', 'View Only Commented', 'View All', 'UI Scale']),
                   const Spacer(),
                   const WindowsControlButtons(),
                 ] : [
@@ -340,6 +345,16 @@ class _CorrectionPageState extends State<CorrectionPage> {
           setState(() {
             _currentBoxIndex = 0;
             _viewOnlyFlagged = true;
+            _viewOnlyCommented = false;
+            if (_visibleBoxes.isNotEmpty) {
+              _textController.text = _visibleBoxes[0].text;
+            }
+          });
+        } else if (value == 'View Only Commented') {
+          setState(() {
+            _currentBoxIndex = 0;
+            _viewOnlyCommented = true;
+            _viewOnlyFlagged = false;
             if (_visibleBoxes.isNotEmpty) {
               _textController.text = _visibleBoxes[0].text;
             }
@@ -347,6 +362,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
         } else if (value == 'View All') {
           setState(() {
             _viewOnlyFlagged = false;
+            _viewOnlyCommented = false;
             _currentBoxIndex = 0;
             if (_visibleBoxes.isNotEmpty) {
               _textController.text = _visibleBoxes[0].text;
@@ -680,6 +696,14 @@ class _CorrectionPageState extends State<CorrectionPage> {
               setState(() {
                 box.comment = result;
                 box.isDirty = true;
+                if (_viewOnlyCommented && !_visibleBoxes.contains(box)) {
+                  _currentBoxIndex = 0;
+                  if (_visibleBoxes.isNotEmpty) {
+                    _textController.text = _visibleBoxes[0].text;
+                  } else {
+                    _textController.text = 'No image available';
+                  }
+                }
               });
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
