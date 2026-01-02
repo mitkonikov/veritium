@@ -177,7 +177,8 @@ class _CorrectionPageState extends State<CorrectionPage> {
               child: Row(
                 children: (!kIsWeb) ? [
                   _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Show Keyboard Shortcuts']),
-                              _buildMenuItem('View', ['View Only Flagged', 'View Only Commented', 'View All', 'UI Scale']),
+                  _buildMenuItem('View', ['View Only Flagged', 'View Only Commented', 'View All', 'UI Scale']),
+                  _buildGotoMenuItem(),
                   const Spacer(),
                   const WindowsControlButtons(),
                 ] : [
@@ -377,6 +378,11 @@ class _CorrectionPageState extends State<CorrectionPage> {
               return StatefulBuilder(builder: (ctx2, setState2) {
                 return AlertDialog(
                   title: const Text('UI Scale'),
+                  shape: ShapeBorder.lerp(
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+                    0,
+                  ),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -442,6 +448,59 @@ class _CorrectionPageState extends State<CorrectionPage> {
           title,
           style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGotoMenuItem() {
+    return InkWell(
+      onTap: () async {
+        if (_visibleBoxes.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('No items to go to.')),
+            );
+          }
+          return;
+        }
+        final controller = TextEditingController();
+        final result = await showDialog<int?>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Go to item'),
+            shape: ShapeBorder.lerp(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+              0,
+            ),
+            content: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: 'Enter item number (1 - ${_visibleBoxes.length})',
+                hintStyle: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () {
+                  final v = int.tryParse(controller.text);
+                  Navigator.of(ctx).pop(v);
+                },
+                child: const Text('Go'),
+              ),
+            ],
+          ),
+        );
+        if (result != null) {
+          final int target = (result - 1).clamp(0, _visibleBoxes.length - 1);
+          _navigateToIndex(target);
+        }
+      },
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+        child: Text('Goto', style: TextStyle(color: Colors.white, fontSize: 16)),
       ),
     );
   }
