@@ -50,6 +50,7 @@ class CorrectionPage extends StatefulWidget {
 
 class _CorrectionPageState extends State<CorrectionPage> {
   late TextEditingController _textController;
+  OverlayEntry? _currentSnack;
 
   @override
   void initState() {
@@ -79,9 +80,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             b.isDirty = false;
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Corrected JSON saved.')),
-        );
+        _showSnack('Corrected JSON saved.');
       }
     }
   }
@@ -151,6 +150,52 @@ class _CorrectionPageState extends State<CorrectionPage> {
       }
       if (jsonFilePath != null) {
         _jsonFilePath = jsonFilePath;
+      }
+    });
+  }
+
+  void _showSnack(String message) {
+    // Custom overlay snackbar anchored to bottom-right with fixed width
+    // and zero border radius.
+    // Remove any existing snack
+    try {
+      _currentSnack?.remove();
+    } catch (_) {}
+
+    final overlay = Overlay.of(context);
+    const double snackWidth = 360.0;
+    final entry = OverlayEntry(builder: (context) {
+      return Positioned(
+        right: 16,
+        bottom: 96,
+        width: snackWidth,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: darkThemeValues[ThemeStyleKey.accentColor],
+              borderRadius: BorderRadius.zero,
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: DefaultTextStyle(
+              style: TextStyle(color: Colors.white),
+              child: Text(message, softWrap: true),
+            ),
+          ),
+        ),
+      );
+    });
+
+    _currentSnack = entry;
+    overlay.insert(entry);
+    // Auto-dismiss after 3 seconds if still present
+    Future.delayed(const Duration(seconds: 3)).then((_) {
+      if (_currentSnack == entry) {
+        try {
+          entry.remove();
+        } catch (_) {}
+        _currentSnack = null;
       }
     });
   }
@@ -294,9 +339,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             _showCroppedImages(boxes, jsonFilePath: filePath);
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error loading JSON: $e')),
-              );
+              _showSnack('Error loading JSON: $e');
             }
           }
         } else if (value == 'Save JSON') {
@@ -309,9 +352,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             });
           } else {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No file loaded to save.')),
-              );
+              _showSnack('No file loaded to save.');
             }
           }
         } else if (value == 'Show Keyboard Shortcuts') {
@@ -457,9 +498,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
       onTap: () async {
         if (_visibleBoxes.isEmpty) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No items to go to.')),
-            );
+            _showSnack('No items to go to.');
           }
           return;
         }
@@ -710,9 +749,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             final box = _currentVisibleBox();
             if (box == null) {
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('No item selected.')),
-                );
+                _showSnack('No item selected.');
               }
               return;
             }
@@ -766,9 +803,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
                 }
               });
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Comment saved.')),
-                );
+                _showSnack('Comment saved.');
               }
             }
           }
