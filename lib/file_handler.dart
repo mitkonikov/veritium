@@ -227,6 +227,7 @@ class BoundingBox {
   Uint8List? croppedSpansPngBytes;
   bool isFlagged;
   String comment = '';
+  bool isDirty = false;
 
   BoundingBox({
     required this.pageIndex,
@@ -240,6 +241,7 @@ class BoundingBox {
     this.croppedPngBytes,
     this.isFlagged = false,
     this.comment = '',
+    this.isDirty = false,
   });
 
   factory BoundingBox.fromJson(Map<String, dynamic> json) {
@@ -269,6 +271,7 @@ class BoundingBox {
       yMax: json['bbox'][3],
       isFlagged: json['is_flagged'] ?? false,
       comment: json['comment'] ?? '',
+      isDirty: false,
     );
   }
 
@@ -285,5 +288,6 @@ class BoundingBox {
         hashTextPairs[i] = MapEntry(hashTextPairs[i].key, '');
       }
     }
+    isDirty = true;
   }
 }

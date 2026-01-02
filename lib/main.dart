@@ -58,6 +58,11 @@ class _CorrectionPageState extends State<CorrectionPage> {
     if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
       await FileHandler.saveCorrectedJsonFile(_jsonFilePath!, _jsonFilePath!, _croppedBoxes);
       if (mounted) {
+        setState(() {
+          for (final b in _croppedBoxes) {
+            b.isDirty = false;
+          }
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Corrected JSON saved.')),
         );
@@ -70,6 +75,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
       final box = _currentVisibleBox();
       if (box != null) {
         box.isFlagged = !box.isFlagged;
+        box.isDirty = true;
         if (_viewOnlyFlagged && !_visibleBoxes.contains(box)) {
           _currentBoxIndex = 0;
           if (_visibleBoxes.isNotEmpty) {
@@ -98,6 +104,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
     if (_currentVisibleBox() != null) {
       setState(() {
         _currentVisibleBox()!.updateText(value);
+        _currentVisibleBox()!.isDirty = true;
       });
     }
   }
@@ -110,6 +117,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
   String? _renderLabel;
   String? _jsonFilePath;
   bool _viewOnlyFlagged = false;
+  bool get _hasUnsavedChanges => _croppedBoxes.any((b) => b.isDirty);
 
   List<BoundingBox> get _visibleBoxes => _viewOnlyFlagged ? _croppedBoxes.where((b) => b.isFlagged).toList() : _croppedBoxes;
 
@@ -272,6 +280,11 @@ class _CorrectionPageState extends State<CorrectionPage> {
         } else if (value == 'Save JSON') {
           if (_jsonFilePath != null && _croppedBoxes.isNotEmpty) {
             await FileHandler.saveNewCorrectedJsonFile(_jsonFilePath!, _croppedBoxes);
+            setState(() {
+              for (final b in _croppedBoxes) {
+                b.isDirty = false;
+              }
+            });
           } else {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -523,9 +536,9 @@ class _CorrectionPageState extends State<CorrectionPage> {
           icon: Icon(
             Icons.save,
             size: buttonSize,
-            color: darkThemeValues[ThemeStyleKey.fontPrimaryColor],
+            color: _hasUnsavedChanges ? Colors.orangeAccent : darkThemeValues[ThemeStyleKey.fontPrimaryColor],
           ),
-          tooltip: 'Save',
+          tooltip: _hasUnsavedChanges ? 'Save (unsaved changes)' : 'Save',
           onPressed: _saveCurrent,
         ),
         const SizedBox(width: 20),
@@ -593,6 +606,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             if (result != null) {
               setState(() {
                 box.comment = result;
+                box.isDirty = true;
               });
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
