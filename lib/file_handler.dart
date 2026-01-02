@@ -30,19 +30,20 @@ class FileHandler {
       List<dynamic> paraBlocks = page['para_blocks'] ?? [];
       for (var block in paraBlocks) {
         if (block['bbox'] != null) {
+          if (block['hash'] == null) {
+            block['hash'] = generateRandomHash();
+            updated = true;
+          }
+
           List<MapEntry<String, String>> hashTextPairs = [];
           bool foundSpans = false;
-          bool flaggedBlock = false;
           for (var line in block['lines'] ?? []) {
             for (var span in line['spans'] ?? []) {
               String content = span['corrected_content'] ?? span['content'] ?? '';
-              String hash = span['content_hash'] ?? generateRandomHash();
-              if (span['content_hash'] == null) {
-                span['content_hash'] = hash;
+              String hash = span['hash'] ?? generateRandomHash();
+              if (span['hash'] == null) {
+                span['hash'] = hash;
                 updated = true;
-              }
-              if (span['flagged'] == true) {
-                flaggedBlock = true;
               }
               hashTextPairs.add(MapEntry(hash, content));
               foundSpans = true;
@@ -53,9 +54,11 @@ class FileHandler {
           }
           allBboxes.add(BoundingBox.fromJson({
             'page_idx': page['page_idx'],
+            'hash': block['hash'],
             'hash_text_pairs': hashTextPairs.map((e) => {'hash': e.key, 'text': e.value}).toList(),
             'bbox': block['bbox'],
-            'is_flagged': flaggedBlock,
+            'is_flagged': block['flagged'] ?? false,
+            'comment': block['comment'] ?? '',
           }));
         }
       }
@@ -150,34 +153,31 @@ class FileHandler {
       List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
       // Accumulate all hashes from every box
       final Map<String, String> hashToText = {};
-      final Set<String> flaggedHashes = {};
+      final Map<String, BoundingBox> hashToBox = {};
       for (final box in boxes) {
         for (final pair in box.hashTextPairs) {
           hashToText[pair.key] = pair.value;
-          if (box.isFlagged) {
-            flaggedHashes.add(pair.key);
-          }
         }
+        hashToBox[box.hash] = box;
       }
 
       for (var page in pdfInfo) {
         List<dynamic> paraBlocks = page['para_blocks'] ?? [];
         for (var block in paraBlocks) {
           List<dynamic> lines = block['lines'] ?? [];
+          if (block['hash'] != null && hashToBox.containsKey(block['hash'])) {
+            final box = hashToBox[block['hash']]!;
+            block['flagged'] = box.isFlagged;
+            block['comment'] = box.comment;
+          }
           for (var line in lines) {
             List<dynamic> spans = line['spans'] ?? [];
             for (var span in spans) {
-              final String hash = (span['content_hash'] ?? '').toString();
+              final String hash = (span['hash'] ?? '').toString();
               if (hash.isNotEmpty && hashToText.containsKey(hash)) {
                 final corrected = hashToText[hash]!;
                 if (span['content'] != corrected) {
                   span['corrected_content'] = corrected;
-                }
-                // Save flagged status
-                if (flaggedHashes.contains(hash)) {
-                  span['flagged'] = true;
-                } else {
-                  span['flagged'] = false;
                 }
               }
             }
@@ -220,11 +220,13 @@ class BoundingBox {
   final int xMax;
   final int yMax;
   List<MapEntry<String, String>> hashTextPairs;
+  String hash;
   ui.Image? croppedImage;
   Uint8List? croppedPngBytes;
   ui.Image? croppedSpans;
   Uint8List? croppedSpansPngBytes;
   bool isFlagged;
+  String comment = '';
 
   BoundingBox({
     required this.pageIndex,
@@ -233,9 +235,11 @@ class BoundingBox {
     required this.xMax,
     required this.yMax,
     required this.hashTextPairs,
+    required this.hash,
     this.croppedImage,
     this.croppedPngBytes,
     this.isFlagged = false,
+    this.comment = '',
   });
 
   factory BoundingBox.fromJson(Map<String, dynamic> json) {
@@ -257,12 +261,14 @@ class BoundingBox {
     }
     return BoundingBox(
       pageIndex: json['page_idx'],
+      hash: json['hash'] ?? '',
       hashTextPairs: pairs,
       xMin: json['bbox'][0],
       yMin: json['bbox'][1],
       xMax: json['bbox'][2],
       yMax: json['bbox'][3],
       isFlagged: json['is_flagged'] ?? false,
+      comment: json['comment'] ?? '',
     );
   }
 

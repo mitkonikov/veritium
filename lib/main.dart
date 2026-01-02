@@ -176,6 +176,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
                       ),
                     if (_visibleBoxes.isNotEmpty) ...[
                       _buildCorrectionPanel(),
+                      _buildCommentLabel(),
                       _croppedImageNavigation(),
                       _buildButtons(),
                     ]
@@ -191,6 +192,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
                       spacing: 10,
                       children: [
                         _buildCorrectionPanel(),
+                        _buildCommentLabel(),
                         _croppedImageNavigation(),
                         _buildButtons()
                       ],
@@ -410,6 +412,25 @@ class _CorrectionPageState extends State<CorrectionPage> {
     );
   }
 
+  Widget _buildCommentLabel() {
+    final box = _currentVisibleBox();
+    final comment = box?.comment;
+    if (comment == null || comment.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Text(
+          'Comment: $comment',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white70),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCorrectionPanel() {
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.7,
@@ -518,6 +539,68 @@ class _CorrectionPageState extends State<CorrectionPage> {
           ),
           tooltip: isFlagged ? 'Flagged' : 'Flag',
           onPressed: _toggleFlagCurrent,
+        ),
+        const SizedBox(width: 20),
+        IconButton(
+          icon: const Icon(Icons.comment, size: buttonSize),
+          tooltip: 'Add Comment',
+          onPressed: () async {
+            final box = _currentVisibleBox();
+            if (box == null) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No item selected.')),
+                );
+              }
+              return;
+            }
+
+            final controller = TextEditingController(text: box.comment);
+            final result = await showDialog<String>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Add Comment'),
+                shape: ShapeBorder.lerp(
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+                  0,
+                ),
+                content: SizedBox(
+                  width: 500,
+                  child: TextField(
+                    controller: controller,
+                    maxLines: 6,
+                    decoration: const InputDecoration(
+                      hintText: 'Type your comment here...',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+            );
+
+            if (result != null) {
+              setState(() {
+                box.comment = result;
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Comment saved.')),
+                );
+              }
+            }
+          }
         ),
         const SizedBox(width: 20),
         // Toggle button to switch between spans and original cropped images
