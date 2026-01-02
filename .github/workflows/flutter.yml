@@ -79,12 +79,23 @@ jobs:
           cd examples/straza
           zip -r ../../sample.zip .
 
+      - name: Prepare release notes
+        id: release_notes
+        run: |
+          TAG="${{ github.ref_name }}"
+          DATE="$(date -u +%Y-%m-%d)"
+          awk -v tag="$TAG" 'BEGIN{flag=0} $0 ~ ("^##[[:space:]]+Release[[:space:]]+"tag) {flag=1; next} /^##[[:space:]]+/{if(flag) exit} flag{print}' CHANGELOG.md > release_notes.md || true
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT || true
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
-          body: "Automated release of the Veritium ${{ github.ref_name }}"
+          body: ${{ steps.release_notes.outputs.body }}
           draft: false
           prerelease: false
           files: |
