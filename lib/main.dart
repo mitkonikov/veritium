@@ -5,6 +5,9 @@ import 'file_handler.dart';
 import 'keyboard.dart';
 import 'windows_controls.dart';
 
+// Global UI scale notifier (1.0 = normal)
+final ValueNotifier<double> uiScaleNotifier = ValueNotifier<double>(1.0);
+
 void main() {
   runApp(const Veritium());
 }
@@ -16,6 +19,19 @@ class Veritium extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      builder: (context, child) {
+        return ValueListenableBuilder<double>(
+          valueListenable: uiScaleNotifier,
+          builder: (context, scale, child) {
+            final mq = MediaQuery.of(context);
+            return MediaQuery(
+              data: mq.copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            );
+          },
+          child: child,
+        );
+      },
       title: 'Veritium',
       theme: buildAppTheme(),
       debugShowCheckedModeBanner: false,
@@ -156,7 +172,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
               child: Row(
                 children: (!kIsWeb) ? [
                   _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Show Keyboard Shortcuts']),
-                  _buildMenuItem('View', ['View Only Flagged', 'View All']),
+                  _buildMenuItem('View', ['View Only Flagged', 'View All', 'UI Scale']),
                   const Spacer(),
                   const WindowsControlButtons(),
                 ] : [
@@ -336,6 +352,63 @@ class _CorrectionPageState extends State<CorrectionPage> {
               _textController.text = _visibleBoxes[0].text;
             }
           });
+        } else if (value == 'UI Scale') {
+          final double initial = uiScaleNotifier.value;
+          double current = initial;
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) {
+              return StatefulBuilder(builder: (ctx2, setState2) {
+                return AlertDialog(
+                  title: const Text('UI Scale'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Scale: ${current.toStringAsFixed(2)}x'),
+                      const SizedBox(height: 12),
+                      Slider(
+                        value: current,
+                        onChanged: (v) {
+                          setState2(() => current = v);
+                          uiScaleNotifier.value = v;
+                        },
+                        min: 0.4,
+                        max: 1.6,
+                        divisions: 16,
+                        label: '${current.toStringAsFixed(2)}x',
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              setState2(() => current = 1.0);
+                              uiScaleNotifier.value = 1.0;
+                            },
+                            child: const Text('Reset'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              uiScaleNotifier.value = initial;
+                              Navigator.of(ctx2).pop();
+                            },
+                            child: const Text('Cancel'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx2).pop(),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              });
+            },
+          );
         }
         // Handle other menu actions here
       },
