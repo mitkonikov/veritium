@@ -14,4 +14,18 @@ void main() {
     expect(find.text('Save'), findsNothing);
     expect(find.textContaining('Flag'), findsNothing);
   });
+
+  testWidgets('AppBar contains Goto and View menu with UI Scale', (WidgetTester tester) async {
+    await tester.pumpWidget(const Veritium());
+
+    // Ensure Goto exists
+    expect(find.text('Goto'), findsOneWidget);
+
+    // Open the View menu and check for UI Scale option
+    expect(find.text('View'), findsOneWidget);
+    await tester.tap(find.text('View'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('UI Scale'), findsOneWidget);
+  });
 }

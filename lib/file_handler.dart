@@ -15,12 +15,23 @@ class FileHandler {
   }
 
   static Future<(String, List<BoundingBox>)> loadJsonFileWithPath() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
     if (result == null || result.files.single.path == null) {
       throw Exception('No file selected.');
     }
     String filePath = result.files.single.path!;
-    File file = File(filePath);
+    return await loadJsonFileFromPath(filePath);
+  }
+
+  // Load JSON directly from a provided file path (no FilePicker interaction).
+  static Future<(String, List<BoundingBox>)> loadJsonFileFromPath(String filePath, {bool writeBackups = true}) async {
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      throw Exception('No file found at $filePath');
+    }
     String fileContent = await file.readAsString();
     final jsonData = jsonDecode(fileContent);
     List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
@@ -63,7 +74,7 @@ class FileHandler {
         }
       }
     }
-    if (updated) {
+    if (updated && writeBackups) {
       // Make a backup of the original file
       final backupFile = File('$filePath.bak');
       await backupFile.writeAsString(fileContent);
