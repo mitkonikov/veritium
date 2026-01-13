@@ -1,6 +1,7 @@
 import 'theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'file_handler.dart';
 import 'keyboard.dart';
 import 'windows_controls.dart';
@@ -213,12 +214,92 @@ class _CorrectionPageState extends State<CorrectionPage> {
     _navigateToIndex(newIndex);
   }
 
+  Future<void> _openCommentDialog() async {
+    final box = _currentVisibleBox();
+    if (box == null) {
+      if (mounted) {
+        _showSnack('No item selected.');
+      }
+      return;
+    }
+
+    final controller = TextEditingController(text: box.comment);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Comment'),
+        shape: ShapeBorder.lerp(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+          0,
+        ),
+        content: SizedBox(
+          width: 500,
+          child: Focus(
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent) {
+                final pressed = HardwareKeyboard.instance.logicalKeysPressed;
+                final isCtrl = pressed.contains(LogicalKeyboardKey.controlLeft) ||
+                    pressed.contains(LogicalKeyboardKey.controlRight) ||
+                    pressed.contains(LogicalKeyboardKey.control);
+                if (isCtrl && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                  Navigator.of(ctx).pop(controller.text.trim());
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 6,
+              decoration: const InputDecoration(
+                hintText: 'Type your comment here...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        box.comment = result;
+        box.isDirty = true;
+        if (_viewOnlyCommented && !_visibleBoxes.contains(box)) {
+          _currentBoxIndex = 0;
+          if (_visibleBoxes.isNotEmpty) {
+            _textController.text = _visibleBoxes[0].text;
+          } else {
+            _textController.text = 'No image available';
+          }
+        }
+      });
+      if (mounted) {
+        _showSnack('Comment saved.');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return KeyboardShortcuts(
       onPrev: _navigatePrev,
       onNext: _navigateNext,
       onSave: _saveCurrent,
+      onComment: _openCommentDialog,
       onFlag: _toggleFlagCurrent,
       child: Scaffold(
         appBar: PreferredSize(
@@ -755,68 +836,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
         IconButton(
           icon: const Icon(Icons.comment, size: buttonSize),
           tooltip: 'Add Comment',
-          onPressed: () async {
-            final box = _currentVisibleBox();
-            if (box == null) {
-              if (mounted) {
-                _showSnack('No item selected.');
-              }
-              return;
-            }
-
-            final controller = TextEditingController(text: box.comment);
-            final result = await showDialog<String>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Add Comment'),
-                shape: ShapeBorder.lerp(
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
-                  0,
-                ),
-                content: SizedBox(
-                  width: 500,
-                  child: TextField(
-                    controller: controller,
-                    maxLines: 6,
-                    decoration: const InputDecoration(
-                      hintText: 'Type your comment here...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    ),
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-                    child: const Text('Save'),
-                  ),
-                ],
-              ),
-            );
-
-            if (result != null) {
-              setState(() {
-                box.comment = result;
-                box.isDirty = true;
-                if (_viewOnlyCommented && !_visibleBoxes.contains(box)) {
-                  _currentBoxIndex = 0;
-                  if (_visibleBoxes.isNotEmpty) {
-                    _textController.text = _visibleBoxes[0].text;
-                  } else {
-                    _textController.text = 'No image available';
-                  }
-                }
-              });
-              if (mounted) {
-                _showSnack('Comment saved.');
-              }
-            }
-          }
+          onPressed: _openCommentDialog,
         ),
         const SizedBox(width: 20),
         IconButton(

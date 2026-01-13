@@ -6,6 +6,7 @@ class KeyboardShortcuts extends StatefulWidget {
   final VoidCallback? onPrev;
   final VoidCallback? onNext;
   final VoidCallback? onSave;
+  final VoidCallback? onComment;
   final VoidCallback? onFlag;
 
   const KeyboardShortcuts({
@@ -14,6 +15,7 @@ class KeyboardShortcuts extends StatefulWidget {
     this.onPrev,
     this.onNext,
     this.onSave,
+    this.onComment,
     this.onFlag,
   });
 
@@ -23,7 +25,6 @@ class KeyboardShortcuts extends StatefulWidget {
 
 class _KeyboardShortcutsState extends State<KeyboardShortcuts> {
   late FocusNode _focusNode;
-  KeyEventResult? _lastResult;
 
   @override
   void initState() {
@@ -91,74 +92,18 @@ class _KeyboardShortcutsState extends State<KeyboardShortcuts> {
       widget.onFlag?.call();
       return true;
     }
+    // Ctrl+T: Comment
+    if (_isCtrlPressed() && event.logicalKey == LogicalKeyboardKey.keyT) {
+      widget.onComment?.call();
+      return true;
+    }
 
     return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    final Map<LogicalKeySet, Intent> shortcuts = {
-      LogicalKeySet(LogicalKeyboardKey.f7): const _PrevIntent(),
-      LogicalKeySet(LogicalKeyboardKey.f8): const _NextIntent(),
-      LogicalKeySet(
-          LogicalKeyboardKey.alt, LogicalKeyboardKey.arrowLeft):
-          const _PrevIntent(),
-      LogicalKeySet(
-          LogicalKeyboardKey.alt, LogicalKeyboardKey.arrowRight):
-          const _NextIntent(),
-      LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS):
-          const _SaveIntent(),
-      LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
-          const _FlagIntent(),
-    };
-
-    return Shortcuts(
-      shortcuts: shortcuts,
-      child: Actions(
-        actions: {
-          _PrevIntent: CallbackAction<_PrevIntent>(
-            onInvoke: (intent) {
-              widget.onPrev?.call();
-              return null;
-            },
-          ),
-          _NextIntent: CallbackAction<_NextIntent>(
-            onInvoke: (intent) {
-              widget.onNext?.call();
-              return null;
-            },
-          ),
-          _SaveIntent: CallbackAction<_SaveIntent>(
-            onInvoke: (intent) {
-              widget.onSave?.call();
-              return null;
-            },
-          ),
-          _FlagIntent: CallbackAction<_FlagIntent>(
-            onInvoke: (intent) {
-              widget.onFlag?.call();
-              return null;
-            },
-          ),
-        },
-        child: Focus(focusNode: _focusNode, child: widget.child),
-      ),
-    );
+    return Focus(focusNode: _focusNode, child: widget.child);
   }
 }
 
-class _PrevIntent extends Intent {
-  const _PrevIntent();
-}
-
-class _NextIntent extends Intent {
-  const _NextIntent();
-}
-
-class _SaveIntent extends Intent {
-  const _SaveIntent();
-}
-
-class _FlagIntent extends Intent {
-  const _FlagIntent();
-}

@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Added `Alt+Left` and `Alt+Right` keyboard shortcuts for navigating to the previous and next items, respectively.
+- Added `Ctrl+T` and `Ctrl+Enter` keyboard shortcuts to open the comment dialog and submit the comment, respectively.
 
 ### Fixed
 
@@ -15,6 +16,7 @@ All notable changes to this project will be documented in this file.
 ### Improved
 
 - Textbox is focused after loading a file or navigating to a different item.
+- Keyboard shortcuts are now handled with a hardware keyboard listener to work anywhere in the app.
 
 ## Release 2.0.0 - 2026-01-02
 
