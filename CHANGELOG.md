@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed keyboard shortcuts not working when textbox is not selected.
+
+### Improved
+
+- Textbox is focused after loading a file or navigating to a different item.
+
 ## Release 2.0.0 - 2026-01-02
 
 ### Breaking Changes
@@ -30,6 +40,6 @@ All notable changes to this project will be documented in this file.
 Notes:
 - Entries show the short commit hash in parentheses for reference.
 
-## Release 1.1.0 - 2024-12-16
+## Release 1.1.0 - 2025-12-16
 
-## Release 1.0.0 - 2024-12-15
+## Release 1.0.0 - 2025-12-15

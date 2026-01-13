@@ -50,16 +50,19 @@ class CorrectionPage extends StatefulWidget {
 
 class _CorrectionPageState extends State<CorrectionPage> {
   late TextEditingController _textController;
+  late FocusNode _textFocusNode;
   OverlayEntry? _currentSnack;
 
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController(text: "No file loaded.");
+    _textFocusNode = FocusNode();
   }
 
   @override
   void dispose() {
+    _textFocusNode.dispose();
     _textController.dispose();
     super.dispose();
   }
@@ -110,6 +113,9 @@ class _CorrectionPageState extends State<CorrectionPage> {
       _currentBoxIndex = clamped;
       _textController.text = _visibleBoxes[_currentBoxIndex].text;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _textFocusNode.requestFocus();
+    });
   }
 
   void _navigatePrev() => _navigateToIndex(_currentBoxIndex - 1);
@@ -151,6 +157,9 @@ class _CorrectionPageState extends State<CorrectionPage> {
       if (jsonFilePath != null) {
         _jsonFilePath = jsonFilePath;
       }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _textFocusNode.requestFocus();
     });
   }
 
@@ -700,6 +709,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
       return TextField(
         controller: _textController,
         onChanged: _onTextChangedHandler,
+        focusNode: _textFocusNode,
         maxLines: null,
         style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
         decoration: const InputDecoration(
