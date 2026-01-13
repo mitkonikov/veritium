@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Added `Alt+Left` and `Alt+Right` keyboard shortcuts for navigating to the previous and next items, respectively.
+
 ### Fixed
 
 - Fixed keyboard shortcuts not working when textbox is not selected.

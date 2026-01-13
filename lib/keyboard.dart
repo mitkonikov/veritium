@@ -51,6 +51,13 @@ class _KeyboardShortcutsState extends State<KeyboardShortcuts> {
         pressed.contains(LogicalKeyboardKey.control);
   }
 
+  bool _isAltPressed() {
+    final pressed = HardwareKeyboard.instance.logicalKeysPressed;
+    return pressed.contains(LogicalKeyboardKey.altLeft) ||
+        pressed.contains(LogicalKeyboardKey.altRight) ||
+        pressed.contains(LogicalKeyboardKey.alt);
+  }
+
   bool _hardwareKeyHandler(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
 
@@ -59,8 +66,18 @@ class _KeyboardShortcutsState extends State<KeyboardShortcuts> {
       widget.onPrev?.call();
       return true; // handled globally
     }
+    // Alt+Left: Previous
+    if (_isAltPressed() && event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      widget.onPrev?.call();
+      return true;
+    }
     // F8: Next
     if (event.logicalKey == LogicalKeyboardKey.f8) {
+      widget.onNext?.call();
+      return true;
+    }
+    // Alt+Right: Next
+    if (_isAltPressed() && event.logicalKey == LogicalKeyboardKey.arrowRight) {
       widget.onNext?.call();
       return true;
     }
@@ -83,6 +100,12 @@ class _KeyboardShortcutsState extends State<KeyboardShortcuts> {
     final Map<LogicalKeySet, Intent> shortcuts = {
       LogicalKeySet(LogicalKeyboardKey.f7): const _PrevIntent(),
       LogicalKeySet(LogicalKeyboardKey.f8): const _NextIntent(),
+      LogicalKeySet(
+          LogicalKeyboardKey.alt, LogicalKeyboardKey.arrowLeft):
+          const _PrevIntent(),
+      LogicalKeySet(
+          LogicalKeyboardKey.alt, LogicalKeyboardKey.arrowRight):
+          const _NextIntent(),
       LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS):
           const _SaveIntent(),
       LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
