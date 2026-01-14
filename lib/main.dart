@@ -761,6 +761,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
   }
 
   Widget _buildCorrectionPanel() {
+    final double imageWidth = (MediaQuery.of(context).size.width * 0.85 / 2).clamp(300, 1400);
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.7,
       child: Row(
@@ -769,14 +770,14 @@ class _CorrectionPageState extends State<CorrectionPage> {
         children: [
           // Show cropped image if available, else placeholder
           SizedBox(
-            width: 600,
+            width: imageWidth,
             child: _croppedImageViewer(),
           ),
           SizedBox(width: 20),
           Flexible(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: 600,
+                maxWidth: imageWidth,
                 minWidth: 200,
               ),
               child: _buildCorrectionTextField(),
@@ -792,9 +793,9 @@ class _CorrectionPageState extends State<CorrectionPage> {
       final box = _visibleBoxes.isNotEmpty ? _visibleBoxes[_currentBoxIndex] : null;
       final int lineCount = box?.text.split('\n').length ?? 1;
       final int imageHeight = box?.croppedImage?.height ?? 200;
-      final double maxFont = (imageHeight / lineCount).clamp(12, 32).toDouble() * 0.83;
+      final double maxFont = (imageHeight / lineCount).clamp(12, 32).toDouble() * 1.08;
       const double minFont = 8.0;
-      final double horizontalPadding = 38.0; // adjust if your TextField has different padding
+      final double horizontalPadding = 50.0; // adjust if your TextField has different padding
       final double availableWidth = constraints.maxWidth - horizontalPadding;
 
       double fitFont(String text) {
@@ -807,7 +808,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
           bool anyOverflow = false;
           for (final line in lines) {
             final tp = TextPainter(
-              text: TextSpan(text: line, style: TextStyle(fontSize: mid)),
+              text: TextSpan(text: line, style: TextStyle(fontSize: mid, fontFamily: 'LatinModernMono')),
               textDirection: TextDirection.ltr,
             )..layout(minWidth: 0, maxWidth: double.infinity);
             if (tp.width >= availableWidth) {

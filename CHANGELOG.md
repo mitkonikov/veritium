@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 
 ### Improved
 
+- Layout usage on small screens.
 - Textbox is focused after loading a file or navigating to a different item.
 - Keyboard shortcuts are now handled with a hardware keyboard listener to work anywhere in the app.
 
