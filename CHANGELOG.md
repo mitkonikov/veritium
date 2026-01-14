@@ -20,6 +20,10 @@ All notable changes to this project will be documented in this file.
 - Textbox is focused after loading a file or navigating to a different item.
 - Keyboard shortcuts are now handled with a hardware keyboard listener to work anywhere in the app.
 
+### Changed
+
+- Changed font in the correction textbox to Latin Modern Mono for better readability.
+
 ## Release 2.0.0 - 2026-01-02
 
 ### Breaking Changes

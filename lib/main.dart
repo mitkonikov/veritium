@@ -831,7 +831,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
         onChanged: _onTextChangedHandler,
         focusNode: _textFocusNode,
         maxLines: null,
-        style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize),
+        style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: fontSize, fontFamily: 'LatinModernMono'),
         decoration: const InputDecoration(
           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           border: OutlineInputBorder(borderRadius: BorderRadius.zero),
