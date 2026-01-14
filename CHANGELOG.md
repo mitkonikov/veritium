@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Added `Alt+Left` and `Alt+Right` keyboard shortcuts for navigating to the previous and next items, respectively.
 - Added `Ctrl+T` and `Ctrl+Enter` keyboard shortcuts to open the comment dialog and submit the comment, respectively.
 - Added `Ctrl+Plus` and `Ctrl+Minus` keyboard shortcuts to increase and decrease the UI scale, respectively.
+- Added `Ctrl+G` keyboard shortcut to open the Goto dialog and improved shortcuts inside the dialog.
 
 ### Fixed
 
