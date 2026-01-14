@@ -1,7 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+class ShortcutInfo {
+  final String keys;
+  final String description;
+  const ShortcutInfo(this.keys, this.description);
+}
+
 class KeyboardShortcuts extends StatefulWidget {
+  static const List<ShortcutInfo> shortcuts = [
+    ShortcutInfo('F7', 'Previous item'),
+    ShortcutInfo('F8', 'Next item'),
+    ShortcutInfo('Alt+Left', 'Previous item'),
+    ShortcutInfo('Alt+Right', 'Next item'),
+    ShortcutInfo('Ctrl+S', 'Save corrected JSON'),
+    ShortcutInfo('Ctrl+F', 'Toggle flag on current item'),
+    ShortcutInfo('Ctrl+T', 'Add comment'),
+    ShortcutInfo('Ctrl+G', 'Go to item'),
+    ShortcutInfo('Ctrl+= / Ctrl+Plus / NumpadAdd', 'Increase UI scale'),
+    ShortcutInfo('Ctrl+- / NumpadSubtract', 'Decrease UI scale'),
+  ];
   final Widget child;
   final VoidCallback? onPrev;
   final VoidCallback? onNext;

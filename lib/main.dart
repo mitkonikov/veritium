@@ -332,7 +332,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
               onPanStart: (_) => WindowControls.startDrag(),
               child: Row(
                 children: (!kIsWeb) ? [
-                  _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Show Keyboard Shortcuts']),
+                  _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Keyboard Shortcuts']),
                   _buildMenuItem('View', ['View Only Flagged', 'View Only Commented', 'View All', 'UI Scale']),
                   _buildGotoMenuItem(),
                   const Spacer(),
@@ -466,7 +466,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
               _showSnack('No file loaded to save.');
             }
           }
-        } else if (value == 'Show Keyboard Shortcuts') {
+        } else if (value == 'Keyboard Shortcuts') {
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -479,15 +479,12 @@ class _CorrectionPageState extends State<CorrectionPage> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('F7 — Previous item'),
-                  SizedBox(height: 8),
-                  Text('F8 — Next item'),
-                  SizedBox(height: 8),
-                  Text('Ctrl+S — Save corrected JSON'),
-                  SizedBox(height: 8),
-                  Text('Ctrl+F — Toggle flag on current item'),
-                ],
+                children: KeyboardShortcuts.shortcuts.map((s) =>
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text('${s.keys} - ${s.description}'),
+                  )
+                ).toList(),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
