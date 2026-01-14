@@ -68,6 +68,20 @@ class _CorrectionPageState extends State<CorrectionPage> {
     super.dispose();
   }
 
+  void _setTextSafe(String text) {
+    // Set controller text while ensuring selection doesn't exceed length.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final oldSel = _textController.selection;
+      final int base = (oldSel.baseOffset < 0) ? 0 : oldSel.baseOffset;
+      final int extent = (oldSel.extentOffset < 0) ? 0 : oldSel.extentOffset;
+      final int maxLen = text.length;
+      final int newBase = base > maxLen ? maxLen : base;
+      final int newExtent = extent > maxLen ? maxLen : extent;
+      _textController.value = TextEditingValue(text: text, selection: TextSelection(baseOffset: newBase, extentOffset: newExtent));
+    });
+  }
+
   BoundingBox? _currentVisibleBox() {
     if (_visibleBoxes.isEmpty) return null;
     if (_currentBoxIndex < 0) return null;
@@ -98,9 +112,9 @@ class _CorrectionPageState extends State<CorrectionPage> {
         if (_viewOnlyFlagged && !_visibleBoxes.contains(box)) {
           _currentBoxIndex = 0;
           if (_visibleBoxes.isNotEmpty) {
-            _textController.text = _visibleBoxes[0].text;
+            _setTextSafe(_visibleBoxes[0].text);
           } else {
-            _textController.text = 'No image available';
+            _setTextSafe('No image available');
           }
         }
       }
@@ -112,7 +126,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
     final int clamped = newIndex.clamp(0, _visibleBoxes.length - 1);
     setState(() {
       _currentBoxIndex = clamped;
-      _textController.text = _visibleBoxes[_currentBoxIndex].text;
+      _setTextSafe(_visibleBoxes[_currentBoxIndex].text);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _textFocusNode.requestFocus();
@@ -153,7 +167,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
       _croppedBoxes = boxes.where((b) => b.croppedPngBytes != null || b.croppedSpansPngBytes != null).toList();
       _currentBoxIndex = 0;
       if (_visibleBoxes.isNotEmpty) {
-        _textController.text = _visibleBoxes[0].text;
+        _setTextSafe(_visibleBoxes[0].text);
       }
       if (jsonFilePath != null) {
         _jsonFilePath = jsonFilePath;
@@ -281,9 +295,9 @@ class _CorrectionPageState extends State<CorrectionPage> {
         if (_viewOnlyCommented && !_visibleBoxes.contains(box)) {
           _currentBoxIndex = 0;
           if (_visibleBoxes.isNotEmpty) {
-            _textController.text = _visibleBoxes[0].text;
+            _setTextSafe(_visibleBoxes[0].text);
           } else {
-            _textController.text = 'No image available';
+            _setTextSafe('No image available');
           }
         }
       });
@@ -301,6 +315,12 @@ class _CorrectionPageState extends State<CorrectionPage> {
       onSave: _saveCurrent,
       onComment: _openCommentDialog,
       onFlag: _toggleFlagCurrent,
+      onIncreaseScale: () {
+        uiScaleNotifier.value = (uiScaleNotifier.value + 0.075).clamp(0.4, 1.6);
+      },
+      onDecreaseScale: () {
+        uiScaleNotifier.value = (uiScaleNotifier.value - 0.075).clamp(0.4, 1.6);
+      },
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(40),
@@ -479,7 +499,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             _viewOnlyFlagged = true;
             _viewOnlyCommented = false;
             if (_visibleBoxes.isNotEmpty) {
-              _textController.text = _visibleBoxes[0].text;
+              _setTextSafe(_visibleBoxes[0].text);
             }
           });
         } else if (value == 'View Only Commented') {
@@ -488,7 +508,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             _viewOnlyCommented = true;
             _viewOnlyFlagged = false;
             if (_visibleBoxes.isNotEmpty) {
-              _textController.text = _visibleBoxes[0].text;
+              _setTextSafe(_visibleBoxes[0].text);
             }
           });
         } else if (value == 'View All') {
@@ -497,7 +517,7 @@ class _CorrectionPageState extends State<CorrectionPage> {
             _viewOnlyCommented = false;
             _currentBoxIndex = 0;
             if (_visibleBoxes.isNotEmpty) {
-              _textController.text = _visibleBoxes[0].text;
+              _setTextSafe(_visibleBoxes[0].text);
             }
           });
         } else if (value == 'UI Scale') {

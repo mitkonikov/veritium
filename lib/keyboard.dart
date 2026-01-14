@@ -7,6 +7,8 @@ class KeyboardShortcuts extends StatefulWidget {
   final VoidCallback? onNext;
   final VoidCallback? onSave;
   final VoidCallback? onComment;
+  final VoidCallback? onIncreaseScale;
+  final VoidCallback? onDecreaseScale;
   final VoidCallback? onFlag;
 
   const KeyboardShortcuts({
@@ -16,6 +18,8 @@ class KeyboardShortcuts extends StatefulWidget {
     this.onNext,
     this.onSave,
     this.onComment,
+    this.onIncreaseScale,
+    this.onDecreaseScale,
     this.onFlag,
   });
 
@@ -95,6 +99,16 @@ class _KeyboardShortcutsState extends State<KeyboardShortcuts> {
     // Ctrl+T: Comment
     if (_isCtrlPressed() && event.logicalKey == LogicalKeyboardKey.keyT) {
       widget.onComment?.call();
+      return true;
+    }
+    // Ctrl+Plus / Ctrl+Equals / NumpadAdd: increase UI scale
+    if (_isCtrlPressed() && (event.logicalKey == LogicalKeyboardKey.equal || event.logicalKey == LogicalKeyboardKey.numpadAdd)) {
+      widget.onIncreaseScale?.call();
+      return true;
+    }
+    // Ctrl+Minus / NumpadSubtract: decrease UI scale
+    if (_isCtrlPressed() && (event.logicalKey == LogicalKeyboardKey.minus || event.logicalKey == LogicalKeyboardKey.numpadSubtract)) {
+      widget.onDecreaseScale?.call();
       return true;
     }
 
