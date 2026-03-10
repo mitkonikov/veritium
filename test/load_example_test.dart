@@ -10,4 +10,15 @@ void main() {
     expect(result.$2, isA<List>());
     expect(result.$2.length, greaterThan(0));
   });
+
+  test('build markdown from example middle json', () async {
+    final path = 'examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json';
+    final result = await FileHandler.loadJsonFileFromPath(path, writeBackups: false);
+    final markdown = await FileHandler.buildMarkdownFromJson(path, result.$2);
+
+    expect(markdown, isNotEmpty);
+    expect(markdown, contains('# '));
+    expect(markdown, contains('- '));
+    expect(markdown, contains('![]('));
+  });
 }

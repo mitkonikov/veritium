@@ -332,13 +332,13 @@ class _CorrectionPageState extends State<CorrectionPage> {
               onPanStart: (_) => WindowControls.startDrag(),
               child: Row(
                 children: (!kIsWeb) ? [
-                  _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Keyboard Shortcuts']),
+                  _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Export Markdown', 'Keyboard Shortcuts']),
                   _buildMenuItem('View', ['View Only Flagged', 'View Only Commented', 'View All', 'UI Scale']),
                   _buildGotoMenuItem(),
                   const Spacer(),
                   const WindowsControlButtons(),
                 ] : [
-                  _buildMenuItem('File', ['Load JSON', 'Save JSON']),
+                  _buildMenuItem('File', ['Load JSON', 'Save JSON', 'Export Markdown']),
                 ],
               ),
             ),
@@ -464,6 +464,23 @@ class _CorrectionPageState extends State<CorrectionPage> {
           } else {
             if (mounted) {
               _showSnack('No file loaded to save.');
+            }
+          }
+        } else if (value == 'Export Markdown') {
+          if (_jsonFilePath == null) {
+            if (mounted) {
+              _showSnack('No file loaded to export.');
+            }
+          } else {
+            try {
+              final exported = await FileHandler.exportMarkdownFromJson(_jsonFilePath!, _croppedBoxes);
+              if (mounted && exported) {
+                _showSnack('Markdown exported.');
+              }
+            } catch (e) {
+              if (mounted) {
+                _showSnack('Error exporting Markdown: $e');
+              }
             }
           }
         } else if (value == 'Keyboard Shortcuts') {
