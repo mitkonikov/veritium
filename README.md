@@ -68,9 +68,23 @@ Dependencies:
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and details.
 
+## Documentation
+
+Internal source map and major function reference: [docs/README.md](docs/README.md)
+
 ## Contributing
 
 Contributions, issues, and feature requests are welcome!
+
+In case you have issues after updating Visual Studio to the latest version, do the following:
+
+```
+rm -rf ./build
+flutter clean
+flutter pub get
+```
+
+Afterwards, it should work again without any issues. As normally, to start the app, run `flutter run` in the root directory.
 
 ## License
 
