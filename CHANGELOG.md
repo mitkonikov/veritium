@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Added MIT License file.
+- Added internal source map and function reference documentation in `docs/` directory.
+- Added markdown export from UI and CLI with option to skip images.
+
 ## Release 2.1.0 - 2026-01-14
 
 ### Added

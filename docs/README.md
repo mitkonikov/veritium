@@ -8,9 +8,11 @@ This document maps the internal source files and major functions in `lib/`.
 - Covers these files:
   - `lib/main.dart`
   - `lib/file_handler.dart`
+  - `lib/markdown_exporter.dart`
   - `lib/keyboard.dart`
   - `lib/theme.dart`
   - `lib/windows_controls.dart`
+  - `bin/export_markdown.dart`
 
 ## High-Level Runtime Flow
 
@@ -22,6 +24,9 @@ This document maps the internal source files and major functions in `lib/`.
 6. Save:
    - In-place save: `_saveCurrent()` → `FileHandler.saveCorrectedJsonFile(...)`
    - Save-as: menu action → `FileHandler.saveNewCorrectedJsonFile(...)`
+7. Export markdown:
+  - UI: `File > Export Markdown` → `FileHandler.exportMarkdownFromJson(...)`
+  - CLI: `bin/export_markdown.dart` → `MarkdownExporter.exportToFile(...)`
 
 ---
 
@@ -30,10 +35,12 @@ This document maps the internal source files and major functions in `lib/`.
 | File | Responsibility |
 |---|---|
 | `lib/main.dart` | Main UI, menu actions, navigation, edit workflow, save flow, progress UI |
-| `lib/file_handler.dart` | JSON loading/parsing, PDF crop rendering, save/writeback logic, `BoundingBox` model |
+| `lib/file_handler.dart` | JSON loading/parsing, PDF crop rendering, save/writeback logic, `BoundingBox` model, UI-facing export wrappers |
+| `lib/markdown_exporter.dart` | Reusable `_middle.json` → Markdown conversion + file export logic (shared by UI and CLI) |
 | `lib/keyboard.dart` | Global keyboard shortcut handling and callback dispatch |
 | `lib/theme.dart` | Dark theme tokens + `ThemeData` construction |
 | `lib/windows_controls.dart` | Windows platform channel window actions + custom traffic-light UI controls |
+| `bin/export_markdown.dart` | Command-line entrypoint for markdown export |
 
 ---
 
@@ -108,6 +115,7 @@ This document maps the internal source files and major functions in `lib/`.
   - Creates menu popups and handles all menu command branches:
     - Load JSON
     - Save JSON (save-as)
+    - Export Markdown
     - Keyboard shortcuts dialog
     - View filters
     - UI Scale dialog
@@ -165,6 +173,57 @@ This document maps the internal source files and major functions in `lib/`.
 
 - `saveNewCorrectedJsonFile(String originalJsonFile, List<BoundingBox> boxes)`
   - Shows save dialog and forwards to `saveCorrectedJsonFile(...)`.
+
+- `buildMarkdownFromJson(String originalJsonFile, List<BoundingBox> boxes)`
+  - UI-facing wrapper that builds hash/text overrides from in-memory edits and delegates to `MarkdownExporter.buildFromJsonFile(...)`.
+
+- `exportMarkdownFromJson(String originalJsonFile, List<BoundingBox> boxes)`
+  - UI-facing wrapper for save dialog + markdown export, delegating conversion and file writing to `MarkdownExporter`.
+
+---
+
+## `lib/markdown_exporter.dart`
+
+### `MarkdownExporter`
+
+- `defaultOutputFileName(String originalJsonFile)`
+  - Converts `_middle.json` (or any `.json`) to default `.md` output filename.
+
+- `buildFromJsonFile(String jsonFilePath, {Map<String, String>? hashTextOverrides, bool includeImages = true})`
+  - Reads JSON file from disk and converts it to markdown.
+  - Supports `includeImages` to keep or skip markdown image entries.
+
+- `buildFromJsonData(Map<String, dynamic> jsonData, {Map<String, String>? hashTextOverrides, bool includeImages = true})`
+  - Core reusable conversion logic:
+    - `title` blocks → markdown headings
+    - `text` blocks → paragraphs
+    - `list` blocks → bullet lines
+    - `image` blocks → markdown image tags + captions
+  - Uses `hashTextOverrides` first, then `corrected_content`, then original `content`.
+
+- `exportToFile({required String inputJsonFile, required String outputMarkdownFile, Map<String, String>? hashTextOverrides, bool includeImages = true})`
+  - End-to-end file export helper used by both UI and CLI.
+  - Supports `includeImages` for output control.
+
+---
+
+## `bin/export_markdown.dart`
+
+### Purpose
+
+CLI command to export MinerU `_middle.json` into markdown without launching the Flutter app.
+
+### Behavior
+
+- Parses options:
+  - `--input` / `-i` (required)
+  - `--output` / `-o` (optional)
+  - `--no-images` (optional)
+  - `--help` / `-h`
+- Defaults output path next to input when `--output` is omitted.
+- Calls `MarkdownExporter.exportToFile(...)` for the actual conversion.
+
+## `lib/file_handler.dart` (continued)
 
 ### `BoundingBox`
 

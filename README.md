@@ -23,6 +23,7 @@
 - 🚩 Flag items for review
 - 💬 Add comments to any bounding box
 - 💾 Auto-save corrections back to the JSON file
+- 🧰 Export `_middle.json` to Markdown from UI or CLI
 - ⌨️ Extensive keyboard shortcuts for efficient workflow
 - 🔍 Go to any item by number
 - 📐 Adjustable UI scale for different screen sizes
@@ -45,7 +46,25 @@ Dependencies:
 2. **Edit text** — The recognized text appears alongside the cropped image. Make corrections in the text field.
 3. **Navigate** — Use the arrow buttons or keyboard shortcuts to move between items.
 4. **Flag & Comment** — Mark items for review with the flag button or add comments via the comment button.
-5. **Save** — Click the save icon (or press `Ctrl+S`) to write changes back to the JSON file. They are saved as 'corrected_content' fields in each line.
+5. **Export Markdown** — Use `File > Export Markdown` to export the loaded `_middle.json` into markdown.
+6. **Save** — Click the save icon (or press `Ctrl+S`) to write changes back to the JSON file. They are saved as 'corrected_content' fields in each line.
+
+## CLI Export
+
+You can export a MinerU `_middle.json` file to markdown without launching the UI:
+
+```bash
+dart run bin/export_markdown.dart --input examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json --output build/cli_export_test.md
+```
+
+Options:
+
+- `--input` / `-i` (required): path to `_middle.json`
+- `--output` / `-o` (optional): output markdown path
+- `--no-images` (optional): skips markdown image entries from image blocks
+- `--help` / `-h`: show CLI help
+
+If `--output` is omitted, output is created next to the input file using the same base name and `.md` extension.
 
 ---
 
