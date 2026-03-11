@@ -18,6 +18,7 @@ class MarkdownExporter {
     String jsonFilePath, {
     Map<String, String>? hashTextOverrides,
     bool includeImages = true,
+    bool preferCorrectedContent = true,
   }) async {
     final file = File(jsonFilePath);
     if (!file.existsSync()) {
@@ -34,6 +35,7 @@ class MarkdownExporter {
       decoded,
       hashTextOverrides: hashTextOverrides,
       includeImages: includeImages,
+      preferCorrectedContent: preferCorrectedContent,
     );
   }
 
@@ -41,6 +43,7 @@ class MarkdownExporter {
     Map<String, dynamic> jsonData, {
     Map<String, String>? hashTextOverrides,
     bool includeImages = true,
+    bool preferCorrectedContent = true,
   }) {
     final overrides = hashTextOverrides ?? const <String, String>{};
     final List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
@@ -60,6 +63,7 @@ class MarkdownExporter {
             block,
             overrides,
             includeImages: includeImages,
+            preferCorrectedContent: preferCorrectedContent,
           );
           if (rendered.isNotEmpty) {
             outputBlocks.addAll(rendered);
@@ -67,15 +71,19 @@ class MarkdownExporter {
           continue;
         }
 
-        final lines = _extractBlockLines(block, overrides);
-        if (lines.isEmpty) continue;
+        final normalizedLines = _extractBlockLines(
+          block,
+          overrides,
+          preferCorrectedContent: preferCorrectedContent,
+        );
+        if (normalizedLines.isEmpty) continue;
 
         if (blockType == 'title') {
-          outputBlocks.add('# ${lines.join(' ')}');
+          outputBlocks.add('# ${normalizedLines.join(' ')}');
         } else if (blockType == 'list') {
-          outputBlocks.addAll(lines.map((line) => '- $line'));
+          outputBlocks.addAll(normalizedLines.map((line) => '- $line'));
         } else {
-          outputBlocks.add(lines.join(' '));
+          outputBlocks.add(normalizedLines.join(' '));
         }
       }
     }
@@ -89,11 +97,13 @@ class MarkdownExporter {
     required String outputMarkdownFile,
     Map<String, String>? hashTextOverrides,
     bool includeImages = true,
+    bool preferCorrectedContent = true,
   }) async {
     final markdown = await buildFromJsonFile(
       inputJsonFile,
       hashTextOverrides: hashTextOverrides,
       includeImages: includeImages,
+      preferCorrectedContent: preferCorrectedContent,
     );
 
     final outputFile = File(outputMarkdownFile);
@@ -103,7 +113,10 @@ class MarkdownExporter {
   static List<String> _renderImageBlock(
     Map<dynamic, dynamic> block,
     Map<String, String> overrides,
-    {required bool includeImages}
+    {
+    required bool includeImages,
+    required bool preferCorrectedContent,
+  }
   ) {
     final imagePaths = <String>[];
     final captions = <String>[];
@@ -135,7 +148,13 @@ class MarkdownExporter {
           }
         }
       } else {
-        captions.addAll(_extractBlockLines(nested, overrides));
+        captions.addAll(
+          _extractBlockLines(
+            nested,
+            overrides,
+            preferCorrectedContent: preferCorrectedContent,
+          ),
+        );
       }
     }
 
@@ -158,6 +177,9 @@ class MarkdownExporter {
   static String _resolveSpanText(
     dynamic span,
     Map<String, String> overrides,
+    {
+    bool preferCorrectedContent = true,
+  }
   ) {
     if (span is! Map) return '';
 
@@ -167,14 +189,23 @@ class MarkdownExporter {
     }
 
     final String corrected = (span['corrected_content'] ?? '').toString().trim();
-    if (corrected.isNotEmpty) return corrected;
+    final String original = (span['content'] ?? '').toString().trim();
 
-    return (span['content'] ?? '').toString().trim();
+    if (preferCorrectedContent) {
+      if (corrected.isNotEmpty) return corrected;
+      return original;
+    }
+
+    if (original.isNotEmpty) return original;
+    return corrected;
   }
 
   static String _extractLineText(
     dynamic line,
     Map<String, String> overrides,
+    {
+    bool preferCorrectedContent = true,
+  }
   ) {
     if (line is! Map) return '';
     final spans = line['spans'];
@@ -182,7 +213,11 @@ class MarkdownExporter {
 
     final parts = <String>[];
     for (final span in spans) {
-      final text = _resolveSpanText(span, overrides);
+      final text = _resolveSpanText(
+        span,
+        overrides,
+        preferCorrectedContent: preferCorrectedContent,
+      );
       if (text.isNotEmpty) {
         parts.add(text);
       }
@@ -194,6 +229,9 @@ class MarkdownExporter {
   static List<String> _extractBlockLines(
     dynamic block,
     Map<String, String> overrides,
+    {
+    bool preferCorrectedContent = true,
+  }
   ) {
     if (block is! Map) return const [];
     final lines = block['lines'];
@@ -201,7 +239,11 @@ class MarkdownExporter {
 
     final results = <String>[];
     for (final line in lines) {
-      final text = _extractLineText(line, overrides);
+      final text = _extractLineText(
+        line,
+        overrides,
+        preferCorrectedContent: preferCorrectedContent,
+      );
       if (text.isNotEmpty) {
         results.add(text);
       }

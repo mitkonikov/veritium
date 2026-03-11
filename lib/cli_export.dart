@@ -6,6 +6,7 @@ class CliExportParseResult {
   final String? inputPath;
   final String? outputPath;
   final bool includeImages;
+  final bool preferCorrectedContent;
   final bool showHelp;
   final String? error;
 
@@ -13,6 +14,7 @@ class CliExportParseResult {
     this.inputPath,
     this.outputPath,
     this.includeImages = true,
+    this.preferCorrectedContent = true,
     this.showHelp = false,
     this.error,
   });
@@ -27,13 +29,14 @@ bool shouldRunEmbeddedCliMode(List<String> args) {
 
 String cliExportUsage(String command) {
   return [
-    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images]',
+    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content]',
     '',
     'Options:',
-    '  -i, --input      Path to MinerU middle JSON file (required)',
-    '  -o, --output     Output markdown file path (optional)',
-    '      --no-images  Skip markdown image entries from image blocks',
-    '  -h, --help       Show this help message',
+    '  -i, --input             Path to MinerU middle JSON file (required)',
+    '  -o, --output            Output markdown file path (optional)',
+    '      --no-images         Skip markdown image entries from image blocks',
+    '      --original-content  Prefer original OCR content over corrected_content',
+    '  -h, --help              Show this help message',
   ].join('\n');
 }
 
@@ -41,6 +44,7 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
   String? inputPath;
   String? outputPath;
   bool includeImages = true;
+  bool preferCorrectedContent = true;
 
   for (int index = 0; index < args.length; index++) {
     final arg = args[index];
@@ -70,6 +74,11 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
       continue;
     }
 
+    if (arg == '--original-content') {
+      preferCorrectedContent = false;
+      continue;
+    }
+
     return CliExportParseResult(error: 'Unknown argument: $arg');
   }
 
@@ -81,6 +90,7 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
     inputPath: inputPath,
     outputPath: outputPath,
     includeImages: includeImages,
+    preferCorrectedContent: preferCorrectedContent,
   );
 }
 
@@ -128,6 +138,7 @@ Future<int> runCliExportCommand(
       inputJsonFile: inputPath,
       outputMarkdownFile: outputPath,
       includeImages: parseResult.includeImages,
+      preferCorrectedContent: parseResult.preferCorrectedContent,
     );
     writeOut('Exported markdown to: $outputPath');
     return 0;

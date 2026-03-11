@@ -74,7 +74,10 @@ Options:
 - `--input` / `-i` (required): path to `_middle.json`
 - `--output` / `-o` (optional): output markdown path
 - `--no-images` (optional): skips markdown image entries from image blocks
+- `--original-content` (optional): prefer original OCR `content` instead of `corrected_content`
 - `--help` / `-h`: show CLI help
+
+By default, markdown export prefers corrected text (`corrected_content`) and falls back to original `content` when corrected text is missing.
 
 If `--output` is omitted, output is created next to the input file using the same base name and `.md` extension.
 

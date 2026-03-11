@@ -160,7 +160,7 @@ Shared CLI command implementation for markdown export, reusable from both:
   - Returns formatted CLI usage/help text.
 
 - `parseCliExportArgs(List<String> args)`
-  - Parses and validates CLI options (`--input`, `--output`, `--no-images`, `--help`).
+  - Parses and validates CLI options (`--input`, `--output`, `--no-images`, `--original-content`, `--help`).
 
 - `runCliExportCommand(List<String> args, {required String command, ...})`
   - Executes end-to-end CLI export flow and returns a process-like exit code.
@@ -218,21 +218,24 @@ Shared CLI command implementation for markdown export, reusable from both:
 - `defaultOutputFileName(String originalJsonFile)`
   - Converts `_middle.json` (or any `.json`) to default `.md` output filename.
 
-- `buildFromJsonFile(String jsonFilePath, {Map<String, String>? hashTextOverrides, bool includeImages = true})`
+- `buildFromJsonFile(String jsonFilePath, {Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true})`
   - Reads JSON file from disk and converts it to markdown.
   - Supports `includeImages` to keep or skip markdown image entries.
+  - Defaults to corrected-content-first text resolution.
 
-- `buildFromJsonData(Map<String, dynamic> jsonData, {Map<String, String>? hashTextOverrides, bool includeImages = true})`
+- `buildFromJsonData(Map<String, dynamic> jsonData, {Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true})`
   - Core reusable conversion logic:
     - `title` blocks → markdown headings
     - `text` blocks → paragraphs
     - `list` blocks → bullet lines
     - `image` blocks → markdown image tags + captions
-  - Uses `hashTextOverrides` first, then `corrected_content`, then original `content`.
+  - Uses `hashTextOverrides` first, then:
+    - corrected-first mode: `corrected_content` → `content`
+    - original-first mode: `content` → `corrected_content`
 
-- `exportToFile({required String inputJsonFile, required String outputMarkdownFile, Map<String, String>? hashTextOverrides, bool includeImages = true})`
+- `exportToFile({required String inputJsonFile, required String outputMarkdownFile, Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true})`
   - End-to-end file export helper used by both UI and CLI.
-  - Supports `includeImages` for output control.
+  - Supports `includeImages` and `preferCorrectedContent` for output control.
 
 ---
 
@@ -248,6 +251,7 @@ CLI command to export MinerU `_middle.json` into markdown without launching the 
   - `--input` / `-i` (required)
   - `--output` / `-o` (optional)
   - `--no-images` (optional)
+  - `--original-content` (optional)
   - `--help` / `-h`
 - Defaults output path next to input when `--output` is omitted.
 - Delegates execution to `runCliExportCommand(...)` in `lib/cli_export.dart`.

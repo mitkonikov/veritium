@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Added embedded CLI export mode in Flutter app entrypoint, enabling Windows binary invocation with `--cli-export`.
 - Added reusable shared CLI command module (`lib/cli_export.dart`) used by both `bin/export_markdown.dart` and `lib/main.dart`.
 - Added automated CLI checks in test suite (`test/cli_export_test.dart`) and GitHub Actions (Dart CLI + Windows binary smoke tests).
+- Added `--original-content` CLI option for exporting original OCR text; default export mode now explicitly prefers `corrected_content` when present.
 
 ## Release 2.1.0 - 2026-01-14
 
