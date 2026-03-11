@@ -23,7 +23,7 @@
 - 🚩 Flag items for review
 - 💬 Add comments to any bounding box
 - 💾 Auto-save corrections back to the JSON file
-- 🧰 Export `_middle.json` to Markdown from UI or CLI
+- 🧰 Export `_middle.json` to Markdown from UI, Dart CLI, or Windows app binary CLI mode
 - ⌨️ Extensive keyboard shortcuts for efficient workflow
 - 🔍 Go to any item by number
 - 📐 Adjustable UI scale for different screen sizes
@@ -53,9 +53,21 @@ Dependencies:
 
 You can export a MinerU `_middle.json` file to markdown without launching the UI:
 
+### Dart CLI command
+
 ```bash
 dart run bin/export_markdown.dart --input examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json --output build/cli_export_test.md
 ```
+
+### Windows Flutter binary command
+
+After building Windows, you can call the app binary directly in CLI mode:
+
+```powershell
+veritium.exe --cli-export --input examples\straza\id-40086785_date-19091112_vol-01_no-132_middle.json --output build\windows_cli_export.md --no-images
+```
+
+`--cli-export` is the explicit switch for binary CLI mode.
 
 Options:
 
@@ -65,6 +77,13 @@ Options:
 - `--help` / `-h`: show CLI help
 
 If `--output` is omitted, output is created next to the input file using the same base name and `.md` extension.
+
+## Automated Testing
+
+- `flutter test` covers CLI behavior (`test/cli_export_test.dart`) and markdown export logic.
+- GitHub Actions runs:
+  - Dart CLI smoke test in Linux CI
+  - Windows binary CLI smoke test in the Windows release build job
 
 ---
 

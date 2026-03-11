@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'cli_export.dart';
 import 'file_handler.dart';
 import 'keyboard.dart';
 import 'windows_controls.dart';
@@ -9,7 +12,16 @@ import 'windows_controls.dart';
 // Global UI scale notifier (1.0 = normal)
 final ValueNotifier<double> uiScaleNotifier = ValueNotifier<double>(1.0);
 
-void main() {
+Future<void> main(List<String> args) async {
+  if (shouldRunEmbeddedCliMode(args)) {
+    final cliArgs = args.where((arg) => arg != '--cli-export').toList();
+    exitCode = await runCliExportCommand(
+      cliArgs,
+      command: 'veritium.exe --cli-export',
+    );
+    return;
+  }
+
   runApp(const Veritium());
 }
 

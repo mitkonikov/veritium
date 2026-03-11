@@ -7,6 +7,7 @@ This document maps the internal source files and major functions in `lib/`.
 - Focuses on runtime behavior and major symbols currently implemented in the app.
 - Covers these files:
   - `lib/main.dart`
+  - `lib/cli_export.dart`
   - `lib/file_handler.dart`
   - `lib/markdown_exporter.dart`
   - `lib/keyboard.dart`
@@ -16,7 +17,7 @@ This document maps the internal source files and major functions in `lib/`.
 
 ## High-Level Runtime Flow
 
-1. App boot: `main()` runs `Veritium`, applying app theme and global UI scale.
+1. App boot: `main(args)` checks for CLI export args first; otherwise runs `Veritium` with app theme and global UI scale.
 2. File load: `CorrectionPage` triggers `FileHandler.loadJsonFileWithPath()`.
 3. PDF rendering: `FileHandler.renderBoxes()` renders original and span PDFs into per-box crops.
 4. Editing: text edits update the current `BoundingBox.hashTextPairs` and mark it dirty.
@@ -26,7 +27,8 @@ This document maps the internal source files and major functions in `lib/`.
    - Save-as: menu action → `FileHandler.saveNewCorrectedJsonFile(...)`
 7. Export markdown:
   - UI: `File > Export Markdown` → `FileHandler.exportMarkdownFromJson(...)`
-  - CLI: `bin/export_markdown.dart` → `MarkdownExporter.exportToFile(...)`
+  - CLI (Dart): `bin/export_markdown.dart` → `runCliExportCommand(...)` → `MarkdownExporter.exportToFile(...)`
+  - CLI (Windows binary): `veritium.exe --cli-export ...` → `runCliExportCommand(...)` → `MarkdownExporter.exportToFile(...)`
 
 ---
 
@@ -34,7 +36,8 @@ This document maps the internal source files and major functions in `lib/`.
 
 | File | Responsibility |
 |---|---|
-| `lib/main.dart` | Main UI, menu actions, navigation, edit workflow, save flow, progress UI |
+| `lib/main.dart` | App entrypoint, embedded CLI mode switch, main UI, menu actions, navigation, edit workflow, save flow, progress UI |
+| `lib/cli_export.dart` | Shared CLI parser/executor for markdown export (used by both app binary mode and `bin` entrypoint) |
 | `lib/file_handler.dart` | JSON loading/parsing, PDF crop rendering, save/writeback logic, `BoundingBox` model, UI-facing export wrappers |
 | `lib/markdown_exporter.dart` | Reusable `_middle.json` → Markdown conversion + file export logic (shared by UI and CLI) |
 | `lib/keyboard.dart` | Global keyboard shortcut handling and callback dispatch |
@@ -52,7 +55,8 @@ This document maps the internal source files and major functions in `lib/`.
   - Global UI scale state shared by app-level `MediaQuery` override.
 
 - `main()`
-  - Entrypoint; runs `Veritium`.
+  - Entrypoint; checks CLI args and executes embedded CLI export mode when requested.
+  - Otherwise starts the Flutter UI app.
 
 ### `Veritium` (`StatelessWidget`)
 
@@ -135,6 +139,31 @@ This document maps the internal source files and major functions in `lib/`.
   - Dynamic text field with computed font-size fitting.
 - `_buildButtons()`
   - Lower action buttons (toggle span/original, flag, comment, save).
+
+---
+
+## `lib/cli_export.dart`
+
+### Purpose
+
+Shared CLI command implementation for markdown export, reusable from both:
+
+- `bin/export_markdown.dart`
+- `lib/main.dart` (embedded app-binary CLI mode)
+
+### Key APIs
+
+- `shouldRunEmbeddedCliMode(List<String> args)`
+  - Detects whether startup args should route to CLI mode.
+
+- `cliExportUsage(String command)`
+  - Returns formatted CLI usage/help text.
+
+- `parseCliExportArgs(List<String> args)`
+  - Parses and validates CLI options (`--input`, `--output`, `--no-images`, `--help`).
+
+- `runCliExportCommand(List<String> args, {required String command, ...})`
+  - Executes end-to-end CLI export flow and returns a process-like exit code.
 
 ---
 
@@ -221,7 +250,7 @@ CLI command to export MinerU `_middle.json` into markdown without launching the 
   - `--no-images` (optional)
   - `--help` / `-h`
 - Defaults output path next to input when `--output` is omitted.
-- Calls `MarkdownExporter.exportToFile(...)` for the actual conversion.
+- Delegates execution to `runCliExportCommand(...)` in `lib/cli_export.dart`.
 
 ## `lib/file_handler.dart` (continued)
 

@@ -26,6 +26,10 @@ jobs:
         run: flutter analyze
       - name: Run tests
         run: flutter test
+      - name: CLI smoke test (dart entrypoint)
+        run: |
+          dart run bin/export_markdown.dart --input examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json --output build/ci_cli_smoke.md --no-images
+          test -f build/ci_cli_smoke.md
       - name: Remove WASM dependencies
         run: dart run pdfrx:remove_wasm_modules
   
@@ -49,6 +53,17 @@ jobs:
         run: dart run pdfrx:remove_wasm_modules
       - name: Build Windows Release
         run: flutter build windows --release
+      - name: CLI smoke test (windows binary)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path build/windows/x64/runner/Release -Filter *.exe | Select-Object -First 1
+          if (-not $exe) {
+            throw "No executable found in build output"
+          }
+          & $exe.FullName --cli-export --input "examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json" --output "build/windows_cli_smoke.md" --no-images
+          if (!(Test-Path "build/windows_cli_smoke.md")) {
+            throw "Windows CLI smoke output was not generated"
+          }
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
         with:
