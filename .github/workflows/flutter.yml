@@ -58,14 +58,7 @@ jobs:
       - name: CLI smoke test (windows binary)
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Path build/windows/x64/runner/Release -Filter *.exe | Select-Object -First 1
-          if (-not $exe) {
-            throw "No executable found in build output"
-          }
-          & $exe.FullName --cli-export --input "examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json" --output "build/windows_cli_smoke.md" --no-images
-          if (!(Test-Path "build/windows_cli_smoke.md")) {
-            throw "Windows CLI smoke output was not generated"
-          }
+          ./test/windows_cli_smoke.ps1
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
         with:
