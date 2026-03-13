@@ -7,6 +7,7 @@ class CliExportParseResult {
   final String? outputPath;
   final bool includeImages;
   final bool preferCorrectedContent;
+  final bool listsAsText;
   final bool showHelp;
   final String? error;
 
@@ -15,6 +16,7 @@ class CliExportParseResult {
     this.outputPath,
     this.includeImages = true,
     this.preferCorrectedContent = true,
+    this.listsAsText = false,
     this.showHelp = false,
     this.error,
   });
@@ -23,19 +25,30 @@ class CliExportParseResult {
 bool shouldRunEmbeddedCliMode(List<String> args) {
   if (args.isEmpty) return false;
   if (args.contains('--cli-export')) return true;
-  const directCliSwitches = <String>{'--input', '-i', '--help', '-h'};
+  const directCliSwitches = <String>{
+    '--input',
+    '-i',
+    '--output',
+    '-o',
+    '--no-images',
+    '--original-content',
+    '--lists-as-text',
+    '--help',
+    '-h',
+  };
   return args.any(directCliSwitches.contains);
 }
 
 String cliExportUsage(String command) {
   return [
-    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content]',
+    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content] [--lists-as-text]',
     '',
     'Options:',
     '  -i, --input             Path to MinerU middle JSON file (required)',
     '  -o, --output            Output markdown file path (optional)',
     '      --no-images         Skip markdown image entries from image blocks',
     '      --original-content  Prefer original OCR content over corrected_content',
+    '      --lists-as-text     Render list blocks as plain text (no markdown dashes)',
     '  -h, --help              Show this help message',
   ].join('\n');
 }
@@ -45,6 +58,7 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
   String? outputPath;
   bool includeImages = true;
   bool preferCorrectedContent = true;
+  bool listsAsText = false;
 
   for (int index = 0; index < args.length; index++) {
     final arg = args[index];
@@ -79,6 +93,11 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
       continue;
     }
 
+    if (arg == '--lists-as-text') {
+      listsAsText = true;
+      continue;
+    }
+
     return CliExportParseResult(error: 'Unknown argument: $arg');
   }
 
@@ -91,6 +110,7 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
     outputPath: outputPath,
     includeImages: includeImages,
     preferCorrectedContent: preferCorrectedContent,
+    listsAsText: listsAsText,
   );
 }
 
@@ -139,6 +159,7 @@ Future<int> runCliExportCommand(
       outputMarkdownFile: outputPath,
       includeImages: parseResult.includeImages,
       preferCorrectedContent: parseResult.preferCorrectedContent,
+      listsAsText: parseResult.listsAsText,
     );
     writeOut('Exported markdown to: $outputPath');
     return 0;

@@ -19,6 +19,7 @@ class MarkdownExporter {
     Map<String, String>? hashTextOverrides,
     bool includeImages = true,
     bool preferCorrectedContent = true,
+    bool listsAsText = false,
   }) async {
     final file = File(jsonFilePath);
     if (!file.existsSync()) {
@@ -36,6 +37,7 @@ class MarkdownExporter {
       hashTextOverrides: hashTextOverrides,
       includeImages: includeImages,
       preferCorrectedContent: preferCorrectedContent,
+      listsAsText: listsAsText,
     );
   }
 
@@ -44,6 +46,7 @@ class MarkdownExporter {
     Map<String, String>? hashTextOverrides,
     bool includeImages = true,
     bool preferCorrectedContent = true,
+    bool listsAsText = false,
   }) {
     final overrides = hashTextOverrides ?? const <String, String>{};
     final List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
@@ -81,7 +84,11 @@ class MarkdownExporter {
         if (blockType == 'title') {
           outputBlocks.add('# ${normalizedLines.join(' ')}');
         } else if (blockType == 'list') {
-          outputBlocks.addAll(normalizedLines.map((line) => '- $line'));
+          if (listsAsText) {
+            outputBlocks.add(normalizedLines.join(' '));
+          } else {
+            outputBlocks.addAll(normalizedLines.map((line) => '- $line'));
+          }
         } else {
           outputBlocks.add(normalizedLines.join(' '));
         }
@@ -98,12 +105,14 @@ class MarkdownExporter {
     Map<String, String>? hashTextOverrides,
     bool includeImages = true,
     bool preferCorrectedContent = true,
+    bool listsAsText = false,
   }) async {
     final markdown = await buildFromJsonFile(
       inputJsonFile,
       hashTextOverrides: hashTextOverrides,
       includeImages: includeImages,
       preferCorrectedContent: preferCorrectedContent,
+      listsAsText: listsAsText,
     );
 
     final outputFile = File(outputMarkdownFile);

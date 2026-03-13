@@ -75,9 +75,12 @@ Options:
 - `--output` / `-o` (optional): output markdown path
 - `--no-images` (optional): skips markdown image entries from image blocks
 - `--original-content` (optional): prefer original OCR `content` instead of `corrected_content`
+- `--lists-as-text` (optional): renders list blocks as plain text instead of markdown bullet lines
 - `--help` / `-h`: show CLI help
 
 By default, markdown export prefers corrected text (`corrected_content`) and falls back to original `content` when corrected text is missing.
+
+By default, list blocks are exported as markdown bullet lines. Use `--lists-as-text` to export list blocks as plain text.
 
 If `--output` is omitted, output is created next to the input file using the same base name and `.md` extension.
 

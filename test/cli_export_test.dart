@@ -37,6 +37,17 @@ void main() {
     expect(result.preferCorrectedContent, isFalse);
   });
 
+  test('parse CLI args with lists-as-text mode', () {
+    final result = parseCliExportArgs([
+      '--input',
+      'examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json',
+      '--lists-as-text',
+    ]);
+
+    expect(result.error, isNull);
+    expect(result.listsAsText, isTrue);
+  });
+
   test('runCliExportCommand exports markdown file', () async {
     final tempDir = await Directory.systemTemp.createTemp('veritium_cli_test_');
     try {
@@ -139,6 +150,68 @@ void main() {
       expect(correctedContent, contains('corrected value'));
       expect(correctedContent, isNot(contains('original value')));
       expect(originalContent, contains('original value'));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('CLI can render list blocks as plain text', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_lists_mode_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final defaultOutputPath = '${tempDir.path}${Platform.pathSeparator}default.md';
+      final textOutputPath = '${tempDir.path}${Platform.pathSeparator}text.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "list",
+          "lines": [
+            {
+              "spans": [
+                {"type": "text", "content": "first item"}
+              ]
+            },
+            {
+              "spans": [
+                {"type": "text", "content": "second item"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final defaultExitCode = await runCliExportCommand(
+        ['--input', inputPath, '--output', defaultOutputPath],
+        command: 'test-list-default',
+      );
+      expect(defaultExitCode, 0);
+
+      final textExitCode = await runCliExportCommand(
+        ['--input', inputPath, '--output', textOutputPath, '--lists-as-text'],
+        command: 'test-list-text',
+      );
+      expect(textExitCode, 0);
+
+      final defaultContent = await File(defaultOutputPath).readAsString();
+      final textContent = await File(textOutputPath).readAsString();
+
+      expect(defaultContent, contains('- first item'));
+      expect(defaultContent, contains('- second item'));
+      expect(textContent, contains('first item second item'));
+      expect(textContent, isNot(contains('- first item')));
+      expect(textContent, isNot(contains('- second item')));
     } finally {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);
