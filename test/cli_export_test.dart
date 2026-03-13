@@ -218,4 +218,104 @@ void main() {
       }
     }
   });
+
+  test('hyphenated wrapped lines are concatenated without spaces', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_hyphen_wrap_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "text",
+          "lines": [
+            {
+              "spans": [
+                {"type": "text", "content": "conca-"}
+              ]
+            },
+            {
+              "spans": [
+                {"type": "text", "content": "tenated"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final exitCode = await runCliExportCommand(
+        ['--input', inputPath, '--output', outputPath],
+        command: 'test-hyphen-wrap',
+      );
+
+      expect(exitCode, 0);
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('concatenated'));
+      expect(content, isNot(contains('conca tenated')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('unicode dash wrapped lines are concatenated without spaces', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_unicode_dash_wrap_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "text",
+          "lines": [
+            {
+              "spans": [
+                {"type": "text", "content": "co\u2010"}
+              ]
+            },
+            {
+              "spans": [
+                {"type": "text", "content": "operate"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final exitCode = await runCliExportCommand(
+        ['--input', inputPath, '--output', outputPath],
+        command: 'test-unicode-dash-wrap',
+      );
+
+      expect(exitCode, 0);
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('cooperate'));
+      expect(content, isNot(contains('co operate')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
 }

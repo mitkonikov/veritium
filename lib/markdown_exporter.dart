@@ -2,6 +2,19 @@ import 'dart:convert';
 import 'dart:io';
 
 class MarkdownExporter {
+  static const List<String> _lineJoinDashes = <String>[
+    '-',
+    '\u00AD', // soft hyphen
+    '\u2010', // hyphen
+    '\u2011', // non-breaking hyphen
+    '\u2012', // figure dash
+    '\u2013', // en dash
+    '\u2014', // em dash
+    '\uFE58', // small em dash
+    '\uFE63', // small hyphen-minus
+    '\uFF0D', // full-width hyphen-minus
+  ];
+
   static String defaultOutputFileName(String originalJsonFile) {
     final normalized = originalJsonFile.replaceAll('\\', '/');
     final fileName = normalized.split('/').last;
@@ -247,15 +260,34 @@ class MarkdownExporter {
     if (lines is! List) return const [];
 
     final results = <String>[];
+    bool appendToPreviousLine = false;
     for (final line in lines) {
-      final text = _extractLineText(
+      var text = _extractLineText(
         line,
         overrides,
         preferCorrectedContent: preferCorrectedContent,
       );
-      if (text.isNotEmpty) {
-        results.add(text);
+
+      text = text.trimRight();
+      final lineEndsWithHyphen = _lineJoinDashes.any(text.endsWith);
+      if (lineEndsWithHyphen) {
+        for (final dash in _lineJoinDashes) {
+          if (text.endsWith(dash)) {
+            text = text.substring(0, text.length - dash.length).trimRight();
+            break;
+          }
+        }
       }
+
+      if (text.isNotEmpty) {
+        if (appendToPreviousLine && results.isNotEmpty) {
+          results[results.length - 1] = '${results.last}${text.trimLeft()}';
+        } else {
+          results.add(text);
+        }
+      }
+
+      appendToPreviousLine = lineEndsWithHyphen;
     }
 
     return results;
