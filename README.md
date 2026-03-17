@@ -111,8 +111,8 @@ Options:
 Notes:
 
 - Only spans with a non-empty `hash` are included.
-- A hash is exported only if `corrected_content` is empty after trimming (missing field counts as empty).
-- Duplicate hashes are removed while preserving first appearance order.
+- A hash is exported only if `corrected_content` field is present and empty after trimming.
+- Duplicate hashes are preserved in output order.
 
 ## Automated Testing
 

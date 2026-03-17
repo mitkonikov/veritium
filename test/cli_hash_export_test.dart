@@ -48,7 +48,7 @@ void main() {
     expect(out.join('\n'), contains('Usage: test-help'));
   });
 
-  test('runCliHashExportCommand exports only hashes with empty corrected_content', () async {
+  test('runCliHashExportCommand exports hashes only when corrected_content is present and empty', () async {
     final tempDir = await Directory.systemTemp.createTemp('veritium_cli_hash_export_');
     try {
       final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
@@ -79,6 +79,7 @@ void main() {
                         'type': 'text',
                         'hash': 'hash-empty-2',
                         'content': 'C',
+                        // Missing corrected_content should not be exported.
                       },
                       {
                         'type': 'text',
@@ -109,7 +110,7 @@ void main() {
 
       expect(exitCode, 0);
       final exported = await File(outputPath).readAsLines();
-      expect(exported, ['hash-empty-1', 'hash-empty-2']);
+      expect(exported, ['hash-empty-1', 'hash-empty-1']);
     } finally {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);

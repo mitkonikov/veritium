@@ -286,8 +286,8 @@ Shared CLI command implementation for exporting span hashes whose `corrected_con
   - Core reusable extraction logic:
     - walks `pdf_info -> para_blocks -> lines -> spans`
     - includes hashes only when `hash` is non-empty
-    - includes only when `corrected_content` is empty (or missing)
-    - de-duplicates while preserving first-seen order
+    - includes only when `corrected_content` field is present and empty
+    - preserves duplicates in original order
 
 - `exportToFile({required String inputJsonFile, required String outputHashFile})`
   - End-to-end helper that writes one hash per line.
