@@ -8,12 +8,15 @@ This document maps the internal source files and major functions in `lib/`.
 - Covers these files:
   - `lib/main.dart`
   - `lib/cli_export.dart`
+  - `lib/cli_hash_export.dart`
   - `lib/file_handler.dart`
+  - `lib/hash_exporter.dart`
   - `lib/markdown_exporter.dart`
   - `lib/keyboard.dart`
   - `lib/theme.dart`
   - `lib/windows_controls.dart`
   - `bin/export_markdown.dart`
+  - `bin/export_empty_corrected_hashes.dart`
 
 ## High-Level Runtime Flow
 
@@ -29,6 +32,9 @@ This document maps the internal source files and major functions in `lib/`.
   - UI: `File > Export Markdown` → `FileHandler.exportMarkdownFromJson(...)`
   - CLI (Dart): `bin/export_markdown.dart` → `runCliExportCommand(...)` → `MarkdownExporter.exportToFile(...)`
   - CLI (Windows binary): `veritium.exe --cli-export ...` → `runCliExportCommand(...)` → `MarkdownExporter.exportToFile(...)`
+8. Export empty corrected hashes:
+  - CLI (Dart): `bin/export_empty_corrected_hashes.dart` → `runCliHashExportCommand(...)` → `HashExporter.exportToFile(...)`
+  - CLI (Windows binary): `veritium.exe --cli-export-empty-hashes ...` → `runCliHashExportCommand(...)` → `HashExporter.exportToFile(...)`
 
 ---
 
@@ -38,12 +44,15 @@ This document maps the internal source files and major functions in `lib/`.
 |---|---|
 | `lib/main.dart` | App entrypoint, embedded CLI mode switch, main UI, menu actions, navigation, edit workflow, save flow, progress UI |
 | `lib/cli_export.dart` | Shared CLI parser/executor for markdown export (used by both app binary mode and `bin` entrypoint) |
+| `lib/cli_hash_export.dart` | Shared CLI parser/executor for exporting hashes with empty `corrected_content` |
 | `lib/file_handler.dart` | JSON loading/parsing, PDF crop rendering, save/writeback logic, `BoundingBox` model, UI-facing export wrappers |
+| `lib/hash_exporter.dart` | Reusable `_middle.json` → hash list extraction/file export for spans with empty `corrected_content` |
 | `lib/markdown_exporter.dart` | Reusable `_middle.json` → Markdown conversion + file export logic (shared by UI and CLI) |
 | `lib/keyboard.dart` | Global keyboard shortcut handling and callback dispatch |
 | `lib/theme.dart` | Dark theme tokens + `ThemeData` construction |
 | `lib/windows_controls.dart` | Windows platform channel window actions + custom traffic-light UI controls |
 | `bin/export_markdown.dart` | Command-line entrypoint for markdown export |
+| `bin/export_empty_corrected_hashes.dart` | Command-line entrypoint for exporting hashes where `corrected_content` is empty |
 
 ---
 
@@ -167,6 +176,28 @@ Shared CLI command implementation for markdown export, reusable from both:
 
 ---
 
+## `lib/cli_hash_export.dart`
+
+### Purpose
+
+Shared CLI command implementation for exporting span hashes whose `corrected_content` is empty.
+
+### Key APIs
+
+- `shouldRunEmbeddedCliHashMode(List<String> args)`
+  - Detects explicit binary hash export mode (`--cli-export-empty-hashes`).
+
+- `cliHashExportUsage(String command)`
+  - Returns formatted CLI usage/help text.
+
+- `parseCliHashExportArgs(List<String> args)`
+  - Parses and validates CLI options (`--input`, `--output`, `--help`).
+
+- `runCliHashExportCommand(List<String> args, {required String command, ...})`
+  - Executes end-to-end empty-corrected-hash export flow and returns a process-like exit code.
+
+---
+
 ## `lib/file_handler.dart`
 
 ### `FileHandler`
@@ -240,6 +271,28 @@ Shared CLI command implementation for markdown export, reusable from both:
 
 ---
 
+## `lib/hash_exporter.dart`
+
+### `HashExporter`
+
+- `defaultOutputFileName(String originalJsonFile)`
+  - Converts `_middle.json` (or any `.json`) to a default `*_empty_corrected_hashes.txt` output filename.
+
+- `buildEmptyCorrectedHashesFromJsonFile(String jsonFilePath)`
+  - Reads JSON file from disk and returns unique span hashes whose `corrected_content` is empty.
+
+- `buildEmptyCorrectedHashesFromJsonData(Map<String, dynamic> jsonData)`
+  - Core reusable extraction logic:
+    - walks `pdf_info -> para_blocks -> lines -> spans`
+    - includes hashes only when `hash` is non-empty
+    - includes only when `corrected_content` is empty (or missing)
+    - de-duplicates while preserving first-seen order
+
+- `exportToFile({required String inputJsonFile, required String outputHashFile})`
+  - End-to-end helper that writes one hash per line.
+
+---
+
 ## `bin/export_markdown.dart`
 
 ### Purpose
@@ -257,6 +310,22 @@ CLI command to export MinerU `_middle.json` into markdown without launching the 
   - `--help` / `-h`
 - Defaults output path next to input when `--output` is omitted.
 - Delegates execution to `runCliExportCommand(...)` in `lib/cli_export.dart`.
+
+## `bin/export_empty_corrected_hashes.dart`
+
+### Purpose
+
+CLI command to export span hashes with empty `corrected_content` from MinerU `_middle.json`.
+
+### Behavior
+
+- Parses options:
+  - `--input` / `-i` (required)
+  - `--output` / `-o` (optional)
+  - `--help` / `-h`
+- Defaults output path next to input when `--output` is omitted.
+- Delegates execution to `runCliHashExportCommand(...)` in `lib/cli_hash_export.dart`.
+- Windows binary mode should use explicit switch: `--cli-export-empty-hashes`.
 
 ## `lib/file_handler.dart` (continued)
 

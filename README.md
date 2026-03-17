@@ -84,6 +84,34 @@ By default, list blocks are exported as markdown bullet lines. Use `--lists-as-t
 
 If `--output` is omitted, output is created next to the input file using the same base name and `.md` extension.
 
+## CLI Export Empty Corrected Hashes
+
+You can export span hashes where `corrected_content` is empty (or missing):
+
+```bash
+dart run bin/export_empty_corrected_hashes.dart --input examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json --output build/empty_corrected_hashes.txt
+```
+
+After building Windows, you can call the app binary directly in hash export CLI mode:
+
+```powershell
+veritium.exe --cli-export-empty-hashes --input examples\straza\id-40086785_date-19091112_vol-01_no-132_middle.json --output build\empty_corrected_hashes.txt
+```
+
+`--cli-export-empty-hashes` is the explicit switch for binary hash export mode.
+
+Options:
+
+- `--input` / `-i` (required): path to `_middle.json`
+- `--output` / `-o` (optional): output text file path
+- `--help` / `-h`: show CLI help
+
+Notes:
+
+- Only spans with a non-empty `hash` are included.
+- A hash is exported only if `corrected_content` is empty after trimming (missing field counts as empty).
+- Duplicate hashes are removed while preserving first appearance order.
+
 ## Automated Testing
 
 - `flutter test` covers CLI behavior (`test/cli_export_test.dart`) and markdown export logic.

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'cli_export.dart';
+import 'cli_hash_export.dart';
 import 'file_handler.dart';
 import 'keyboard.dart';
 import 'windows_controls.dart';
@@ -13,6 +14,15 @@ import 'windows_controls.dart';
 final ValueNotifier<double> uiScaleNotifier = ValueNotifier<double>(1.0);
 
 Future<void> main(List<String> args) async {
+  if (shouldRunEmbeddedCliHashMode(args)) {
+    final cliArgs = args.where((arg) => arg != '--cli-export-empty-hashes').toList();
+    exitCode = await runCliHashExportCommand(
+      cliArgs,
+      command: 'veritium.exe --cli-export-empty-hashes',
+    );
+    return;
+  }
+
   if (shouldRunEmbeddedCliMode(args)) {
     final cliArgs = args.where((arg) => arg != '--cli-export').toList();
     exitCode = await runCliExportCommand(

@@ -29,11 +29,12 @@ class MarkdownExporter {
 
   static Future<String> buildFromJsonFile(
     String jsonFilePath, {
-    Map<String, String>? hashTextOverrides,
-    bool includeImages = true,
-    bool preferCorrectedContent = true,
-    bool listsAsText = false,
-  }) async {
+      Map<String, String>? hashTextOverrides,
+      bool includeImages = true,
+      bool preferCorrectedContent = true,
+      bool listsAsText = false,
+    }
+  ) async {
     final file = File(jsonFilePath);
     if (!file.existsSync()) {
       throw Exception('No file found at $jsonFilePath');
@@ -136,9 +137,9 @@ class MarkdownExporter {
     Map<dynamic, dynamic> block,
     Map<String, String> overrides,
     {
-    required bool includeImages,
-    required bool preferCorrectedContent,
-  }
+      required bool includeImages,
+      required bool preferCorrectedContent,
+    }
   ) {
     final imagePaths = <String>[];
     final captions = <String>[];
@@ -200,8 +201,8 @@ class MarkdownExporter {
     dynamic span,
     Map<String, String> overrides,
     {
-    bool preferCorrectedContent = true,
-  }
+      bool preferCorrectedContent = true,
+    }
   ) {
     if (span is! Map) return '';
 
@@ -210,24 +211,23 @@ class MarkdownExporter {
       return overrides[hash]!.trim();
     }
 
-    final String corrected = (span['corrected_content'] ?? '').toString().trim();
-    final String original = (span['content'] ?? '').toString().trim();
-
     if (preferCorrectedContent) {
-      if (corrected.isNotEmpty) return corrected;
-      return original;
+      if (span.containsKey('corrected_content')) {
+        return (span['corrected_content'] ?? '').toString().trim();
+      } else {
+        return (span['content'] ?? '').toString().trim();
+      }
     }
 
-    if (original.isNotEmpty) return original;
-    return corrected;
+    return (span['content'] ?? '').toString().trim();
   }
 
   static String _extractLineText(
     dynamic line,
     Map<String, String> overrides,
     {
-    bool preferCorrectedContent = true,
-  }
+      bool preferCorrectedContent = true,
+    }
   ) {
     if (line is! Map) return '';
     final spans = line['spans'];
@@ -252,8 +252,8 @@ class MarkdownExporter {
     dynamic block,
     Map<String, String> overrides,
     {
-    bool preferCorrectedContent = true,
-  }
+      bool preferCorrectedContent = true,
+    }
   ) {
     if (block is! Map) return const [];
     final lines = block['lines'];
