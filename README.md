@@ -76,6 +76,8 @@ Options:
 - `--no-images` (optional): skips markdown image entries from image blocks
 - `--original-content` (optional): prefer original OCR `content` instead of `corrected_content`
 - `--lists-as-text` (optional): renders list blocks as plain text instead of markdown bullet lines
+- `--skip-hashes` (optional): path to text file with hashes to skip (one hash per line)
+- `--skip-hashes-mode` (optional): `span` (default) removes matching spans only, `line` removes whole lines containing matching hashes
 - `--help` / `-h`: show CLI help
 
 By default, markdown export prefers corrected text (`corrected_content`) and falls back to original `content` when corrected text is missing.

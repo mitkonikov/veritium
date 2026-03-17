@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Added automated CLI checks in test suite (`test/cli_export_test.dart`) and GitHub Actions (Dart CLI + Windows binary smoke tests).
 - Added `--original-content` CLI option for exporting original OCR text; default export mode now explicitly prefers `corrected_content` when present.
 - Added `--lists-as-text` CLI option for exporting list blocks as plain text (without markdown bullets).
+- Added `--skip-hashes` CLI option for markdown export, with `--skip-hashes-mode` to control span-level (default) or line-level omission based on hashes loaded from a text file.
 - Added CLI command `bin/export_empty_corrected_hashes.dart` to export unique span hashes where `corrected_content` is empty, including Windows binary mode via `--cli-export-empty-hashes`.
 
 ## Release 2.1.0 - 2026-01-14

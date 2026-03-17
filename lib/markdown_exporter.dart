@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+enum SkipHashesMode { span, line }
+
 class MarkdownExporter {
   static const List<String> _lineJoinDashes = <String>[
     '-',
@@ -33,6 +35,8 @@ class MarkdownExporter {
       bool includeImages = true,
       bool preferCorrectedContent = true,
       bool listsAsText = false,
+      Set<String> skipHashes = const <String>{},
+      SkipHashesMode skipHashesMode = SkipHashesMode.span,
     }
   ) async {
     final file = File(jsonFilePath);
@@ -52,6 +56,8 @@ class MarkdownExporter {
       includeImages: includeImages,
       preferCorrectedContent: preferCorrectedContent,
       listsAsText: listsAsText,
+      skipHashes: skipHashes,
+      skipHashesMode: skipHashesMode,
     );
   }
 
@@ -61,6 +67,8 @@ class MarkdownExporter {
     bool includeImages = true,
     bool preferCorrectedContent = true,
     bool listsAsText = false,
+    Set<String> skipHashes = const <String>{},
+    SkipHashesMode skipHashesMode = SkipHashesMode.span,
   }) {
     final overrides = hashTextOverrides ?? const <String, String>{};
     final List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
@@ -81,6 +89,8 @@ class MarkdownExporter {
             overrides,
             includeImages: includeImages,
             preferCorrectedContent: preferCorrectedContent,
+            skipHashes: skipHashes,
+            skipHashesMode: skipHashesMode,
           );
           if (rendered.isNotEmpty) {
             outputBlocks.addAll(rendered);
@@ -92,6 +102,8 @@ class MarkdownExporter {
           block,
           overrides,
           preferCorrectedContent: preferCorrectedContent,
+          skipHashes: skipHashes,
+          skipHashesMode: skipHashesMode,
         );
         if (normalizedLines.isEmpty) continue;
 
@@ -120,6 +132,8 @@ class MarkdownExporter {
     bool includeImages = true,
     bool preferCorrectedContent = true,
     bool listsAsText = false,
+    Set<String> skipHashes = const <String>{},
+    SkipHashesMode skipHashesMode = SkipHashesMode.span,
   }) async {
     final markdown = await buildFromJsonFile(
       inputJsonFile,
@@ -127,6 +141,8 @@ class MarkdownExporter {
       includeImages: includeImages,
       preferCorrectedContent: preferCorrectedContent,
       listsAsText: listsAsText,
+      skipHashes: skipHashes,
+      skipHashesMode: skipHashesMode,
     );
 
     final outputFile = File(outputMarkdownFile);
@@ -139,6 +155,8 @@ class MarkdownExporter {
     {
       required bool includeImages,
       required bool preferCorrectedContent,
+      required Set<String> skipHashes,
+      required SkipHashesMode skipHashesMode,
     }
   ) {
     final imagePaths = <String>[];
@@ -176,6 +194,8 @@ class MarkdownExporter {
             nested,
             overrides,
             preferCorrectedContent: preferCorrectedContent,
+            skipHashes: skipHashes,
+            skipHashesMode: skipHashesMode,
           ),
         );
       }
@@ -227,6 +247,8 @@ class MarkdownExporter {
     Map<String, String> overrides,
     {
       bool preferCorrectedContent = true,
+      Set<String> skipHashes = const <String>{},
+      SkipHashesMode skipHashesMode = SkipHashesMode.span,
     }
   ) {
     if (line is! Map) return '';
@@ -235,6 +257,13 @@ class MarkdownExporter {
 
     final parts = <String>[];
     for (final span in spans) {
+      if (skipHashesMode == SkipHashesMode.span && span is Map) {
+        final hash = (span['hash'] ?? '').toString().trim();
+        if (hash.isNotEmpty && skipHashes.contains(hash)) {
+          continue;
+        }
+      }
+
       final text = _resolveSpanText(
         span,
         overrides,
@@ -248,11 +277,31 @@ class MarkdownExporter {
     return parts.join(' ').trim();
   }
 
+  static bool _lineContainsSkippedHash(dynamic line, Set<String> skipHashes) {
+    if (skipHashes.isEmpty) return false;
+    if (line is! Map) return false;
+
+    final spans = line['spans'];
+    if (spans is! List) return false;
+
+    for (final span in spans) {
+      if (span is! Map) continue;
+      final hash = (span['hash'] ?? '').toString().trim();
+      if (hash.isNotEmpty && skipHashes.contains(hash)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   static List<String> _extractBlockLines(
     dynamic block,
     Map<String, String> overrides,
     {
       bool preferCorrectedContent = true,
+      Set<String> skipHashes = const <String>{},
+      SkipHashesMode skipHashesMode = SkipHashesMode.span,
     }
   ) {
     if (block is! Map) return const [];
@@ -262,10 +311,17 @@ class MarkdownExporter {
     final results = <String>[];
     bool appendToPreviousLine = false;
     for (final line in lines) {
+      if (skipHashesMode == SkipHashesMode.line && _lineContainsSkippedHash(line, skipHashes)) {
+        appendToPreviousLine = false;
+        continue;
+      }
+
       var text = _extractLineText(
         line,
         overrides,
         preferCorrectedContent: preferCorrectedContent,
+        skipHashes: skipHashes,
+        skipHashesMode: skipHashesMode,
       );
 
       text = text.trimRight();

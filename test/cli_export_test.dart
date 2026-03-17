@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:veritium/cli_export.dart';
+import 'package:veritium/markdown_exporter.dart';
 
 void main() {
   test('embedded CLI mode detection', () {
@@ -46,6 +47,46 @@ void main() {
 
     expect(result.error, isNull);
     expect(result.listsAsText, isTrue);
+  });
+
+  test('parse CLI args with skip-hashes file', () {
+    final result = parseCliExportArgs([
+      '--input',
+      'examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json',
+      '--skip-hashes',
+      'build/skip_hashes.txt',
+    ]);
+
+    expect(result.error, isNull);
+    expect(result.skipHashesPath, 'build/skip_hashes.txt');
+    expect(result.skipHashesMode, SkipHashesMode.span);
+  });
+
+  test('parse CLI args with skip-hashes-mode line', () {
+    final result = parseCliExportArgs([
+      '--input',
+      'examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json',
+      '--skip-hashes-mode',
+      'line',
+    ]);
+
+    expect(result.error, isNull);
+    expect(result.skipHashesMode, SkipHashesMode.line);
+  });
+
+  test('loadSkipHashes reads trimmed unique hashes', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_skip_hashes_');
+    try {
+      final hashesPath = '${tempDir.path}${Platform.pathSeparator}skip_hashes.txt';
+      await File(hashesPath).writeAsString(' h1 \n\n h2\n h1\n');
+
+      final hashes = await loadSkipHashes(hashesPath);
+      expect(hashes, {'h1', 'h2'});
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
   });
 
   test('runCliExportCommand exports markdown file', () async {
@@ -312,6 +353,134 @@ void main() {
       final content = await File(outputPath).readAsString();
       expect(content, contains('cooperate'));
       expect(content, isNot(contains('co operate')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('CLI skip-hashes default mode removes only matching spans', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_skip_hashes_behavior_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+      final skipHashesPath = '${tempDir.path}${Platform.pathSeparator}skip_hashes.txt';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "text",
+          "lines": [
+            {
+              "spans": [
+                {"type": "text", "hash": "keep-hash", "content": "Keep this line"}
+              ]
+            },
+            {
+              "spans": [
+                {"type": "text", "hash": "keep-prefix", "content": "Keep"},
+                {"type": "text", "hash": "skip-hash", "content": "Skip"},
+                {"type": "text", "hash": "keep-suffix", "content": "line"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+      await File(skipHashesPath).writeAsString('skip-hash\n');
+
+      final exitCode = await runCliExportCommand(
+        [
+          '--input',
+          inputPath,
+          '--output',
+          outputPath,
+          '--skip-hashes',
+          skipHashesPath,
+        ],
+        command: 'test-skip-hashes',
+      );
+
+      expect(exitCode, 0);
+
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('Keep this line'));
+      expect(content, contains('Keep line'));
+      expect(content, isNot(contains('Skip')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('CLI skip-hashes line mode removes full matching lines', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_skip_hashes_line_mode_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+      final skipHashesPath = '${tempDir.path}${Platform.pathSeparator}skip_hashes.txt';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "text",
+          "lines": [
+            {
+              "spans": [
+                {"type": "text", "hash": "keep-hash", "content": "Keep this line"}
+              ]
+            },
+            {
+              "spans": [
+                {"type": "text", "hash": "keep-prefix", "content": "Keep"},
+                {"type": "text", "hash": "skip-hash", "content": "Skip"},
+                {"type": "text", "hash": "keep-suffix", "content": "line"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+      await File(skipHashesPath).writeAsString('skip-hash\n');
+
+      final exitCode = await runCliExportCommand(
+        [
+          '--input',
+          inputPath,
+          '--output',
+          outputPath,
+          '--skip-hashes',
+          skipHashesPath,
+          '--skip-hashes-mode',
+          'line',
+        ],
+        command: 'test-skip-hashes-line',
+      );
+
+      expect(exitCode, 0);
+
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('Keep this line'));
+      expect(content, isNot(contains('Keep line')));
+      expect(content, isNot(contains('Skip')));
     } finally {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);

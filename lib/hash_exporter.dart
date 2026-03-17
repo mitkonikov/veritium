@@ -36,7 +36,6 @@ class HashExporter {
   ) {
     final List<dynamic> pdfInfo = jsonData['pdf_info'] ?? [];
     final results = <String>[];
-    final seen = <String>{};
 
     for (final page in pdfInfo) {
       if (page is! Map) continue;
@@ -59,10 +58,7 @@ class HashExporter {
             final hash = (span['hash'] ?? '').toString().trim();
             if (hash.isEmpty) continue;
 
-            final corrected = (span['corrected_content'] ?? '').toString().trim();
-            if (corrected.isNotEmpty) continue;
-
-            if (seen.add(hash)) {
+            if (span.containsKey('corrected_content') && span['corrected_content'].toString().trim().isEmpty) {
               results.add(hash);
             }
           }

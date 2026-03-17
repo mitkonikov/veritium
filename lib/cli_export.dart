@@ -5,6 +5,8 @@ import 'package:veritium/markdown_exporter.dart';
 class CliExportParseResult {
   final String? inputPath;
   final String? outputPath;
+  final String? skipHashesPath;
+  final SkipHashesMode skipHashesMode;
   final bool includeImages;
   final bool preferCorrectedContent;
   final bool listsAsText;
@@ -14,6 +16,8 @@ class CliExportParseResult {
   const CliExportParseResult({
     this.inputPath,
     this.outputPath,
+    this.skipHashesPath,
+    this.skipHashesMode = SkipHashesMode.span,
     this.includeImages = true,
     this.preferCorrectedContent = true,
     this.listsAsText = false,
@@ -33,6 +37,8 @@ bool shouldRunEmbeddedCliMode(List<String> args) {
     '--no-images',
     '--original-content',
     '--lists-as-text',
+    '--skip-hashes',
+    '--skip-hashes-mode',
     '--help',
     '-h',
   };
@@ -41,7 +47,7 @@ bool shouldRunEmbeddedCliMode(List<String> args) {
 
 String cliExportUsage(String command) {
   return [
-    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content] [--lists-as-text]',
+    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content] [--lists-as-text] [--skip-hashes <path/to/hashes.txt>] [--skip-hashes-mode <span|line>]',
     '',
     'Options:',
     '  -i, --input             Path to MinerU middle JSON file (required)',
@@ -49,6 +55,8 @@ String cliExportUsage(String command) {
     '      --no-images         Skip markdown image entries from image blocks',
     '      --original-content  Prefer original OCR content over corrected_content',
     '      --lists-as-text     Render list blocks as plain text (no markdown dashes)',
+    '      --skip-hashes       Path to text file with hashes to skip (one hash per line)',
+    '      --skip-hashes-mode  Skip mode: span (default) or line',
     '  -h, --help              Show this help message',
   ].join('\n');
 }
@@ -56,6 +64,8 @@ String cliExportUsage(String command) {
 CliExportParseResult parseCliExportArgs(List<String> args) {
   String? inputPath;
   String? outputPath;
+  String? skipHashesPath;
+  SkipHashesMode skipHashesMode = SkipHashesMode.span;
   bool includeImages = true;
   bool preferCorrectedContent = true;
   bool listsAsText = false;
@@ -98,6 +108,29 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
       continue;
     }
 
+    if (arg == '--skip-hashes') {
+      if (index + 1 >= args.length) {
+        return const CliExportParseResult(error: 'Missing value for --skip-hashes');
+      }
+      skipHashesPath = args[++index];
+      continue;
+    }
+
+    if (arg == '--skip-hashes-mode') {
+      if (index + 1 >= args.length) {
+        return const CliExportParseResult(error: 'Missing value for --skip-hashes-mode');
+      }
+      final modeValue = args[++index].trim().toLowerCase();
+      if (modeValue == 'span') {
+        skipHashesMode = SkipHashesMode.span;
+      } else if (modeValue == 'line') {
+        skipHashesMode = SkipHashesMode.line;
+      } else {
+        return CliExportParseResult(error: 'Invalid value for --skip-hashes-mode: $modeValue (expected span or line)');
+      }
+      continue;
+    }
+
     return CliExportParseResult(error: 'Unknown argument: $arg');
   }
 
@@ -108,10 +141,28 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
   return CliExportParseResult(
     inputPath: inputPath,
     outputPath: outputPath,
+    skipHashesPath: skipHashesPath,
+    skipHashesMode: skipHashesMode,
     includeImages: includeImages,
     preferCorrectedContent: preferCorrectedContent,
     listsAsText: listsAsText,
   );
+}
+
+Future<Set<String>> loadSkipHashes(String filePath) async {
+  final file = File(filePath);
+  if (!file.existsSync()) {
+    throw Exception('Skip hashes file not found: $filePath');
+  }
+
+  final content = await file.readAsString();
+  final hashes = <String>{};
+  for (final rawLine in content.split(RegExp(r'\r?\n'))) {
+    final line = rawLine.trim();
+    if (line.isEmpty) continue;
+    hashes.add(line);
+  }
+  return hashes;
 }
 
 String defaultCliOutputPathForInput(String inputPath) {
@@ -146,11 +197,22 @@ Future<int> runCliExportCommand(
 
   final inputPath = parseResult.inputPath!;
   final outputPath = parseResult.outputPath ?? defaultCliOutputPathForInput(inputPath);
+  final skipHashesPath = parseResult.skipHashesPath;
 
   final inputFile = File(inputPath);
   if (!inputFile.existsSync()) {
     writeErr('Error: Input file not found: $inputPath');
     return 66;
+  }
+
+  Set<String> skipHashes = const <String>{};
+  if (skipHashesPath != null) {
+    try {
+      skipHashes = await loadSkipHashes(skipHashesPath);
+    } catch (e) {
+      writeErr('Error: $e');
+      return 66;
+    }
   }
 
   try {
@@ -160,6 +222,8 @@ Future<int> runCliExportCommand(
       includeImages: parseResult.includeImages,
       preferCorrectedContent: parseResult.preferCorrectedContent,
       listsAsText: parseResult.listsAsText,
+      skipHashes: skipHashes,
+      skipHashesMode: parseResult.skipHashesMode,
     );
     writeOut('Exported markdown to: $outputPath');
     return 0;
