@@ -83,7 +83,7 @@ class MarkdownExporter {
         if (block is! Map) continue;
         final String blockType = (block['type'] ?? '').toString().toLowerCase();
 
-        if (blockType == 'image') {
+        if (blockType == 'image' || blockType == 'image_caption') {
           final rendered = _renderImageBlock(
             block,
             overrides,
@@ -114,6 +114,10 @@ class MarkdownExporter {
             outputBlocks.add(normalizedLines.join(' '));
           } else {
             outputBlocks.addAll(normalizedLines.map((line) => '- $line'));
+          }
+        } else if (blockType == 'image_caption') {
+          if (includeImages) {
+            outputBlocks.add(normalizedLines.join(' '));
           }
         } else {
           outputBlocks.add(normalizedLines.join(' '));
@@ -159,6 +163,10 @@ class MarkdownExporter {
       required SkipHashesMode skipHashesMode,
     }
   ) {
+    if (!includeImages) {
+      return const [];
+    }
+
     final imagePaths = <String>[];
     final captions = <String>[];
 
@@ -202,13 +210,11 @@ class MarkdownExporter {
     }
 
     final output = <String>[];
-    if (includeImages && imagePaths.isEmpty && captions.isNotEmpty) {
+    if (imagePaths.isEmpty && captions.isNotEmpty) {
       output.add('[Image]');
     }
-    if (includeImages) {
-      for (final imagePath in imagePaths) {
-        output.add('![]($imagePath)');
-      }
+    for (final imagePath in imagePaths) {
+      output.add('![]($imagePath)');
     }
     if (captions.isNotEmpty) {
       output.add(captions.join(' '));
@@ -256,6 +262,7 @@ class MarkdownExporter {
     if (spans is! List) return '';
 
     final parts = <String>[];
+    bool appendToPreviousPart = false;
     for (final span in spans) {
       if (skipHashesMode == SkipHashesMode.span && span is Map) {
         final hash = (span['hash'] ?? '').toString().trim();
@@ -264,14 +271,32 @@ class MarkdownExporter {
         }
       }
 
-      final text = _resolveSpanText(
+      var text = _resolveSpanText(
         span,
         overrides,
         preferCorrectedContent: preferCorrectedContent,
       );
-      if (text.isNotEmpty) {
-        parts.add(text);
+
+      text = text.trimRight();
+      final spanEndsWithHyphen = _lineJoinDashes.any(text.endsWith);
+      if (spanEndsWithHyphen) {
+        for (final dash in _lineJoinDashes) {
+          if (text.endsWith(dash)) {
+            text = text.substring(0, text.length - dash.length).trimRight();
+            break;
+          }
+        }
       }
+
+      if (text.isNotEmpty) {
+        if (appendToPreviousPart && parts.isNotEmpty) {
+          parts[parts.length - 1] = '${parts.last}${text.trimLeft()}';
+        } else {
+          parts.add(text);
+        }
+      }
+
+      appendToPreviousPart = spanEndsWithHyphen;
     }
 
     return parts.join(' ').trim();
@@ -290,6 +315,44 @@ class MarkdownExporter {
       if (hash.isNotEmpty && skipHashes.contains(hash)) {
         return true;
       }
+    }
+
+    return false;
+  }
+
+  static bool _lineEndsWithJoinDash(
+    dynamic line,
+    Map<String, String> overrides,
+    {
+      bool preferCorrectedContent = true,
+      Set<String> skipHashes = const <String>{},
+      SkipHashesMode skipHashesMode = SkipHashesMode.span,
+    }
+  ) {
+    if (line is! Map) return false;
+    final spans = line['spans'];
+    if (spans is! List) return false;
+
+    for (int index = spans.length - 1; index >= 0; index--) {
+      final span = spans[index];
+      if (skipHashesMode == SkipHashesMode.span && span is Map) {
+        final hash = (span['hash'] ?? '').toString().trim();
+        if (hash.isNotEmpty && skipHashes.contains(hash)) {
+          continue;
+        }
+      }
+
+      final text = _resolveSpanText(
+        span,
+        overrides,
+        preferCorrectedContent: preferCorrectedContent,
+      ).trimRight();
+
+      if (text.isEmpty) {
+        continue;
+      }
+
+      return _lineJoinDashes.any(text.endsWith);
     }
 
     return false;
@@ -316,6 +379,14 @@ class MarkdownExporter {
         continue;
       }
 
+      final lineEndsWithHyphen = _lineEndsWithJoinDash(
+        line,
+        overrides,
+        preferCorrectedContent: preferCorrectedContent,
+        skipHashes: skipHashes,
+        skipHashesMode: skipHashesMode,
+      );
+
       var text = _extractLineText(
         line,
         overrides,
@@ -325,15 +396,6 @@ class MarkdownExporter {
       );
 
       text = text.trimRight();
-      final lineEndsWithHyphen = _lineJoinDashes.any(text.endsWith);
-      if (lineEndsWithHyphen) {
-        for (final dash in _lineJoinDashes) {
-          if (text.endsWith(dash)) {
-            text = text.substring(0, text.length - dash.length).trimRight();
-            break;
-          }
-        }
-      }
 
       if (text.isNotEmpty) {
         if (appendToPreviousLine && results.isNotEmpty) {

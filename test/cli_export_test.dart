@@ -260,6 +260,79 @@ void main() {
     }
   });
 
+  test('image caption is excluded when images are disabled', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_no_images_caption_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "image",
+          "bbox": [595, 196, 693, 331],
+          "blocks": [
+            {
+              "type": "image_caption",
+              "bbox": [594, 183, 613, 193],
+              "group_id": 0,
+              "lines": [
+                {
+                  "bbox": [593, 181, 615, 195],
+                  "spans": [
+                    {
+                      "bbox": [593, 181, 615, 195],
+                      "score": 1.0,
+                      "content": "1087",
+                      "type": "text"
+                    }
+                  ],
+                  "index": 62
+                }
+              ],
+              "index": 62
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "lines": [
+            {
+              "spans": [
+                {"type": "text", "content": "Regular text remains."}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final exitCode = await runCliExportCommand(
+        ['--input', inputPath, '--output', outputPath, '--no-images'],
+        command: 'test-no-images-caption',
+      );
+
+      expect(exitCode, 0);
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('Regular text remains.'));
+      expect(content, isNot(contains('1087')));
+      expect(content, isNot(contains('[Image]')));
+      expect(content, isNot(contains('![](')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
   test('hyphenated wrapped lines are concatenated without spaces', () async {
     final tempDir = await Directory.systemTemp.createTemp('veritium_cli_hyphen_wrap_');
     try {
@@ -353,6 +426,66 @@ void main() {
       final content = await File(outputPath).readAsString();
       expect(content, contains('cooperate'));
       expect(content, isNot(contains('co operate')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('hyphenated word split across spans in same line is concatenated', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_span_hyphen_wrap_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "text",
+          "lines": [
+            {
+              "bbox": [312, 778, 590, 806],
+              "spans": [
+                {
+                  "bbox": [312, 778, 590, 801],
+                  "score": 0.963,
+                  "content": "Uranjeka tri lepe pesmi, nakar je predsednik go-",
+                  "type": "text",
+                  "hash": "lh4o0rv4j86zqmbdkmabr25ouj5fib91hcv9gvsmq7bao1881mpjrizdh2y09ccs"
+                },
+                {
+                  "bbox": [315, 793, 517, 806],
+                  "score": 0.987,
+                  "content": "spod Poto\u010dnik zaklju\u010dil zborovanje.",
+                  "type": "text",
+                  "hash": "lhvrd95y4e5cz1tv6h65pn8bygmwwysp711rmmsv7vzbwmi0qu21yo8momico0pq"
+                }
+              ],
+              "index": 168
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final exitCode = await runCliExportCommand(
+        ['--input', inputPath, '--output', outputPath],
+        command: 'test-span-hyphen-wrap',
+      );
+
+      expect(exitCode, 0);
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('Uranjeka tri lepe pesmi, nakar je predsednik gospod Poto\u010dnik zaključil zborovanje.'));
+      expect(content, isNot(contains('go- spod')));
     } finally {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);
