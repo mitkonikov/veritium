@@ -76,6 +76,8 @@ Options:
 - `--no-images` (optional): skips markdown image entries from image blocks
 - `--original-content` (optional): prefer original OCR `content` instead of `corrected_content`
 - `--lists-as-text` (optional): renders list blocks as plain text instead of markdown bullet lines
+- `--all-as-text` (optional): renders titles, lists, and image paths as plain text (no markdown syntax)
+- `--block-separator` (optional): `double` (default) uses a blank line between blocks, `single` uses one newline
 - `--skip-hashes` (optional): path to text file with hashes to skip (one hash per line)
 - `--skip-hashes-mode` (optional): `span` (default) removes matching spans only, `line` removes whole lines containing matching hashes
 - `--help` / `-h`: show CLI help
@@ -84,11 +86,15 @@ By default, markdown export prefers corrected text (`corrected_content`) and fal
 
 By default, list blocks are exported as markdown bullet lines. Use `--lists-as-text` to export list blocks as plain text.
 
+Use `--all-as-text` to force all supported block content into plain text output.
+
+Use `--block-separator single` if you want a single newline between exported blocks.
+
 If `--output` is omitted, output is created next to the input file using the same base name and `.md` extension.
 
 ## CLI Export Empty Corrected Hashes
 
-You can export span hashes where `corrected_content` is empty (or missing):
+You can export span hashes where `corrected_content` field is present and empty:
 
 ```bash
 dart run bin/export_empty_corrected_hashes.dart --input examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json --output build/empty_corrected_hashes.txt

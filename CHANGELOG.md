@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Added `--lists-as-text` CLI option for exporting list blocks as plain text (without markdown bullets).
 - Added `--skip-hashes` CLI option for markdown export, with `--skip-hashes-mode` to control span-level (default) or line-level omission based on hashes loaded from a text file.
 - Added CLI command `bin/export_empty_corrected_hashes.dart` to export span hashes where `corrected_content` field is present and empty, including Windows binary mode via `--cli-export-empty-hashes`.
+- Added `--all-as-text` and `--block-separator` CLI options for markdown export to force plain-text rendering and configure block spacing (`double` or `single`).
 
 ## Release 2.1.0 - 2026-01-14
 

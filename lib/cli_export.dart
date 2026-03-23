@@ -7,6 +7,8 @@ class CliExportParseResult {
   final String? outputPath;
   final String? skipHashesPath;
   final SkipHashesMode skipHashesMode;
+  final bool allAsText;
+  final String blockSeparator;
   final bool includeImages;
   final bool preferCorrectedContent;
   final bool listsAsText;
@@ -18,6 +20,8 @@ class CliExportParseResult {
     this.outputPath,
     this.skipHashesPath,
     this.skipHashesMode = SkipHashesMode.span,
+    this.allAsText = false,
+    this.blockSeparator = '\n\n',
     this.includeImages = true,
     this.preferCorrectedContent = true,
     this.listsAsText = false,
@@ -37,8 +41,10 @@ bool shouldRunEmbeddedCliMode(List<String> args) {
     '--no-images',
     '--original-content',
     '--lists-as-text',
+    '--all-as-text',
     '--skip-hashes',
     '--skip-hashes-mode',
+    '--block-separator',
     '--help',
     '-h',
   };
@@ -47,7 +53,7 @@ bool shouldRunEmbeddedCliMode(List<String> args) {
 
 String cliExportUsage(String command) {
   return [
-    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content] [--lists-as-text] [--skip-hashes <path/to/hashes.txt>] [--skip-hashes-mode <span|line>]',
+    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content] [--lists-as-text] [--all-as-text] [--skip-hashes <path/to/hashes.txt>] [--skip-hashes-mode <span|line>] [--block-separator <double|single>]',
     '',
     'Options:',
     '  -i, --input             Path to MinerU middle JSON file (required)',
@@ -55,8 +61,10 @@ String cliExportUsage(String command) {
     '      --no-images         Skip markdown image entries from image blocks',
     '      --original-content  Prefer original OCR content over corrected_content',
     '      --lists-as-text     Render list blocks as plain text (no markdown dashes)',
+    '      --all-as-text       Render titles/lists/images as plain text (no markdown syntax)',
     '      --skip-hashes       Path to text file with hashes to skip (one hash per line)',
     '      --skip-hashes-mode  Skip mode: span (default) or line',
+    '      --block-separator   Separator between blocks: double (default) or single newline',
     '  -h, --help              Show this help message',
   ].join('\n');
 }
@@ -66,6 +74,8 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
   String? outputPath;
   String? skipHashesPath;
   SkipHashesMode skipHashesMode = SkipHashesMode.span;
+  bool allAsText = false;
+  String blockSeparator = '\n\n';
   bool includeImages = true;
   bool preferCorrectedContent = true;
   bool listsAsText = false;
@@ -108,6 +118,11 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
       continue;
     }
 
+    if (arg == '--all-as-text') {
+      allAsText = true;
+      continue;
+    }
+
     if (arg == '--skip-hashes') {
       if (index + 1 >= args.length) {
         return const CliExportParseResult(error: 'Missing value for --skip-hashes');
@@ -131,6 +146,23 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
       continue;
     }
 
+    if (arg == '--block-separator') {
+      if (index + 1 >= args.length) {
+        return const CliExportParseResult(error: 'Missing value for --block-separator');
+      }
+      final separatorValue = args[++index].trim().toLowerCase();
+      if (separatorValue == 'double') {
+        blockSeparator = '\n\n';
+      } else if (separatorValue == 'single') {
+        blockSeparator = '\n';
+      } else {
+        return CliExportParseResult(
+          error: 'Invalid value for --block-separator: $separatorValue (expected single or double)',
+        );
+      }
+      continue;
+    }
+
     return CliExportParseResult(error: 'Unknown argument: $arg');
   }
 
@@ -143,6 +175,8 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
     outputPath: outputPath,
     skipHashesPath: skipHashesPath,
     skipHashesMode: skipHashesMode,
+    allAsText: allAsText,
+    blockSeparator: blockSeparator,
     includeImages: includeImages,
     preferCorrectedContent: preferCorrectedContent,
     listsAsText: listsAsText,
@@ -222,6 +256,8 @@ Future<int> runCliExportCommand(
       includeImages: parseResult.includeImages,
       preferCorrectedContent: parseResult.preferCorrectedContent,
       listsAsText: parseResult.listsAsText,
+      allAsText: parseResult.allAsText,
+      blockSeparator: parseResult.blockSeparator,
       skipHashes: skipHashes,
       skipHashesMode: parseResult.skipHashesMode,
     );

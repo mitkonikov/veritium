@@ -74,6 +74,20 @@ void main() {
     expect(result.skipHashesMode, SkipHashesMode.line);
   });
 
+  test('parse CLI args with all-as-text and single block separator', () {
+    final result = parseCliExportArgs([
+      '--input',
+      'examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json',
+      '--all-as-text',
+      '--block-separator',
+      'single',
+    ]);
+
+    expect(result.error, isNull);
+    expect(result.allAsText, isTrue);
+    expect(result.blockSeparator, '\n');
+  });
+
   test('loadSkipHashes reads trimmed unique hashes', () async {
     final tempDir = await Directory.systemTemp.createTemp('veritium_cli_skip_hashes_');
     try {
@@ -253,6 +267,126 @@ void main() {
       expect(textContent, contains('first item second item'));
       expect(textContent, isNot(contains('- first item')));
       expect(textContent, isNot(contains('- second item')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('CLI all-as-text renders titles lists and images without markdown syntax', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_all_as_text_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "title",
+          "lines": [
+            {"spans": [{"type": "text", "content": "Section Title"}]}
+          ]
+        },
+        {
+          "type": "list",
+          "lines": [
+            {"spans": [{"type": "text", "content": "List item"}]}
+          ]
+        },
+        {
+          "type": "image",
+          "blocks": [
+            {
+              "type": "image_body",
+              "lines": [
+                {
+                  "spans": [
+                    {"type": "image", "image_path": "images/sample.png"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final exitCode = await runCliExportCommand(
+        ['--input', inputPath, '--output', outputPath, '--all-as-text'],
+        command: 'test-all-as-text',
+      );
+
+      expect(exitCode, 0);
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('Section Title'));
+      expect(content, contains('List item'));
+      expect(content, contains('images/sample.png'));
+      expect(content, isNot(contains('# Section Title')));
+      expect(content, isNot(contains('- List item')));
+      expect(content, isNot(contains('![](images/sample.png)')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('CLI block-separator single uses single newline between blocks', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_block_separator_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "text",
+          "lines": [
+            {"spans": [{"type": "text", "content": "First block"}]}
+          ]
+        },
+        {
+          "type": "text",
+          "lines": [
+            {"spans": [{"type": "text", "content": "Second block"}]}
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final exitCode = await runCliExportCommand(
+        [
+          '--input',
+          inputPath,
+          '--output',
+          outputPath,
+          '--block-separator',
+          'single',
+        ],
+        command: 'test-block-separator-single',
+      );
+
+      expect(exitCode, 0);
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('First block\nSecond block\n'));
+      expect(content, isNot(contains('First block\n\nSecond block')));
     } finally {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);

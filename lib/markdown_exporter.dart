@@ -35,6 +35,8 @@ class MarkdownExporter {
       bool includeImages = true,
       bool preferCorrectedContent = true,
       bool listsAsText = false,
+      bool allAsText = false,
+      String blockSeparator = '\n\n',
       Set<String> skipHashes = const <String>{},
       SkipHashesMode skipHashesMode = SkipHashesMode.span,
     }
@@ -56,6 +58,8 @@ class MarkdownExporter {
       includeImages: includeImages,
       preferCorrectedContent: preferCorrectedContent,
       listsAsText: listsAsText,
+      allAsText: allAsText,
+      blockSeparator: blockSeparator,
       skipHashes: skipHashes,
       skipHashesMode: skipHashesMode,
     );
@@ -67,6 +71,8 @@ class MarkdownExporter {
     bool includeImages = true,
     bool preferCorrectedContent = true,
     bool listsAsText = false,
+    bool allAsText = false,
+    String blockSeparator = '\n\n',
     Set<String> skipHashes = const <String>{},
     SkipHashesMode skipHashesMode = SkipHashesMode.span,
   }) {
@@ -89,6 +95,7 @@ class MarkdownExporter {
             overrides,
             includeImages: includeImages,
             preferCorrectedContent: preferCorrectedContent,
+            allAsText: allAsText,
             skipHashes: skipHashes,
             skipHashesMode: skipHashesMode,
           );
@@ -107,7 +114,9 @@ class MarkdownExporter {
         );
         if (normalizedLines.isEmpty) continue;
 
-        if (blockType == 'title') {
+        if (allAsText) {
+          outputBlocks.add(normalizedLines.join(' '));
+        } else if (blockType == 'title') {
           outputBlocks.add('# ${normalizedLines.join(' ')}');
         } else if (blockType == 'list') {
           if (listsAsText) {
@@ -126,7 +135,7 @@ class MarkdownExporter {
     }
 
     if (outputBlocks.isEmpty) return '';
-    return '${outputBlocks.join('\n\n').trimRight()}\n';
+    return '${outputBlocks.join(blockSeparator).trimRight()}\n';
   }
 
   static Future<void> exportToFile({
@@ -136,6 +145,8 @@ class MarkdownExporter {
     bool includeImages = true,
     bool preferCorrectedContent = true,
     bool listsAsText = false,
+    bool allAsText = false,
+    String blockSeparator = '\n\n',
     Set<String> skipHashes = const <String>{},
     SkipHashesMode skipHashesMode = SkipHashesMode.span,
   }) async {
@@ -145,6 +156,8 @@ class MarkdownExporter {
       includeImages: includeImages,
       preferCorrectedContent: preferCorrectedContent,
       listsAsText: listsAsText,
+      allAsText: allAsText,
+      blockSeparator: blockSeparator,
       skipHashes: skipHashes,
       skipHashesMode: skipHashesMode,
     );
@@ -159,6 +172,7 @@ class MarkdownExporter {
     {
       required bool includeImages,
       required bool preferCorrectedContent,
+      required bool allAsText,
       required Set<String> skipHashes,
       required SkipHashesMode skipHashesMode,
     }
@@ -211,10 +225,10 @@ class MarkdownExporter {
 
     final output = <String>[];
     if (imagePaths.isEmpty && captions.isNotEmpty) {
-      output.add('[Image]');
+      output.add(allAsText ? 'Image' : '[Image]');
     }
     for (final imagePath in imagePaths) {
-      output.add('![]($imagePath)');
+      output.add(allAsText ? imagePath : '![]($imagePath)');
     }
     if (captions.isNotEmpty) {
       output.add(captions.join(' '));
