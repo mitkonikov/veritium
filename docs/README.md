@@ -169,7 +169,7 @@ Shared CLI command implementation for markdown export, reusable from both:
   - Returns formatted CLI usage/help text.
 
 - `parseCliExportArgs(List<String> args)`
-  - Parses and validates CLI options (`--input`, `--output`, `--no-images`, `--original-content`, `--lists-as-text`, `--all-as-text`, `--block-separator`, `--skip-hashes`, `--skip-hashes-mode`, `--help`).
+  - Parses and validates CLI options (`--input`, `--output`, `--no-images`, `--original-content`, `--lists-as-text`, `--all-as-text`, `--block-separator`, `--skip-flagged`, `--skip-hashes`, `--skip-hashes-mode`, `--help`).
 
 - `runCliExportCommand(List<String> args, {required String command, ...})`
   - Executes end-to-end CLI export flow and returns a process-like exit code.
@@ -249,16 +249,17 @@ Shared CLI command implementation for exporting span hashes whose `corrected_con
 - `defaultOutputFileName(String originalJsonFile)`
   - Converts `_middle.json` (or any `.json`) to default `.md` output filename.
 
-- `buildFromJsonFile(String jsonFilePath, {Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true, bool listsAsText = false, bool allAsText = false, String blockSeparator = '\\n\\n', Set<String> skipHashes = const <String>{}, SkipHashesMode skipHashesMode = SkipHashesMode.span})`
+- `buildFromJsonFile(String jsonFilePath, {Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true, bool listsAsText = false, bool allAsText = false, String blockSeparator = '\\n\\n', bool skipFlagged = false, Set<String> skipHashes = const <String>{}, SkipHashesMode skipHashesMode = SkipHashesMode.span})`
   - Reads JSON file from disk and converts it to markdown.
   - Supports `includeImages` to keep or skip markdown image entries.
   - Supports `listsAsText` to render list blocks as plain text.
   - Supports `allAsText` to render supported blocks without markdown syntax.
   - Supports `blockSeparator` to control separator between rendered blocks.
+  - Supports `skipFlagged` to omit blocks marked as flagged.
   - Supports `skipHashes` and `skipHashesMode` to omit matching spans (`span`) or full lines (`line`).
   - Defaults to corrected-content-first text resolution.
 
-- `buildFromJsonData(Map<String, dynamic> jsonData, {Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true, bool listsAsText = false, bool allAsText = false, String blockSeparator = '\\n\\n', Set<String> skipHashes = const <String>{}, SkipHashesMode skipHashesMode = SkipHashesMode.span})`
+- `buildFromJsonData(Map<String, dynamic> jsonData, {Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true, bool listsAsText = false, bool allAsText = false, String blockSeparator = '\\n\\n', bool skipFlagged = false, Set<String> skipHashes = const <String>{}, SkipHashesMode skipHashesMode = SkipHashesMode.span})`
   - Core reusable conversion logic:
     - `title` blocks → markdown headings
     - `text` blocks → paragraphs
@@ -269,9 +270,9 @@ Shared CLI command implementation for exporting span hashes whose `corrected_con
     - corrected-first mode: `corrected_content` → `content`
     - original-first mode: `content` → `corrected_content`
 
-- `exportToFile({required String inputJsonFile, required String outputMarkdownFile, Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true, bool listsAsText = false, bool allAsText = false, String blockSeparator = '\\n\\n', Set<String> skipHashes = const <String>{}, SkipHashesMode skipHashesMode = SkipHashesMode.span})`
+- `exportToFile({required String inputJsonFile, required String outputMarkdownFile, Map<String, String>? hashTextOverrides, bool includeImages = true, bool preferCorrectedContent = true, bool listsAsText = false, bool allAsText = false, String blockSeparator = '\\n\\n', bool skipFlagged = false, Set<String> skipHashes = const <String>{}, SkipHashesMode skipHashesMode = SkipHashesMode.span})`
   - End-to-end file export helper used by both UI and CLI.
-  - Supports `includeImages`, `preferCorrectedContent`, `listsAsText`, `allAsText`, `blockSeparator`, `skipHashes`, and `skipHashesMode` for output control.
+  - Supports `includeImages`, `preferCorrectedContent`, `listsAsText`, `allAsText`, `blockSeparator`, `skipFlagged`, `skipHashes`, and `skipHashesMode` for output control.
 
 ---
 
@@ -313,6 +314,7 @@ CLI command to export MinerU `_middle.json` into markdown without launching the 
   - `--lists-as-text` (optional)
   - `--all-as-text` (optional)
   - `--block-separator` (optional: `double` default, or `single`)
+  - `--skip-flagged` (optional)
   - `--skip-hashes` (optional, one hash per line text file)
   - `--skip-hashes-mode` (optional: `span` default, or `line`)
   - `--help` / `-h`

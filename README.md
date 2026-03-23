@@ -78,6 +78,7 @@ Options:
 - `--lists-as-text` (optional): renders list blocks as plain text instead of markdown bullet lines
 - `--all-as-text` (optional): renders titles, lists, and image paths as plain text (no markdown syntax)
 - `--block-separator` (optional): `double` (default) uses a blank line between blocks, `single` uses one newline
+- `--skip-flagged` (optional): skips blocks where `is_flagged` (or `flagged`) is set to true
 - `--skip-hashes` (optional): path to text file with hashes to skip (one hash per line)
 - `--skip-hashes-mode` (optional): `span` (default) removes matching spans only, `line` removes whole lines containing matching hashes
 - `--help` / `-h`: show CLI help

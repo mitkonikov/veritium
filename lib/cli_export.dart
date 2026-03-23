@@ -12,6 +12,7 @@ class CliExportParseResult {
   final bool includeImages;
   final bool preferCorrectedContent;
   final bool listsAsText;
+  final bool skipFlagged;
   final bool showHelp;
   final String? error;
 
@@ -25,6 +26,7 @@ class CliExportParseResult {
     this.includeImages = true,
     this.preferCorrectedContent = true,
     this.listsAsText = false,
+    this.skipFlagged = false,
     this.showHelp = false,
     this.error,
   });
@@ -42,6 +44,7 @@ bool shouldRunEmbeddedCliMode(List<String> args) {
     '--original-content',
     '--lists-as-text',
     '--all-as-text',
+    '--skip-flagged',
     '--skip-hashes',
     '--skip-hashes-mode',
     '--block-separator',
@@ -53,7 +56,7 @@ bool shouldRunEmbeddedCliMode(List<String> args) {
 
 String cliExportUsage(String command) {
   return [
-    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content] [--lists-as-text] [--all-as-text] [--skip-hashes <path/to/hashes.txt>] [--skip-hashes-mode <span|line>] [--block-separator <double|single>]',
+    'Usage: $command --input <path/to/file_middle.json> [--output <path/to/output.md>] [--no-images] [--original-content] [--lists-as-text] [--all-as-text] [--skip-flagged] [--skip-hashes <path/to/hashes.txt>] [--skip-hashes-mode <span|line>] [--block-separator <double|single>]',
     '',
     'Options:',
     '  -i, --input             Path to MinerU middle JSON file (required)',
@@ -62,6 +65,7 @@ String cliExportUsage(String command) {
     '      --original-content  Prefer original OCR content over corrected_content',
     '      --lists-as-text     Render list blocks as plain text (no markdown dashes)',
     '      --all-as-text       Render titles/lists/images as plain text (no markdown syntax)',
+    '      --skip-flagged      Skip blocks where is_flagged (or flagged) is true',
     '      --skip-hashes       Path to text file with hashes to skip (one hash per line)',
     '      --skip-hashes-mode  Skip mode: span (default) or line',
     '      --block-separator   Separator between blocks: double (default) or single newline',
@@ -79,6 +83,7 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
   bool includeImages = true;
   bool preferCorrectedContent = true;
   bool listsAsText = false;
+  bool skipFlagged = false;
 
   for (int index = 0; index < args.length; index++) {
     final arg = args[index];
@@ -120,6 +125,11 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
 
     if (arg == '--all-as-text') {
       allAsText = true;
+      continue;
+    }
+
+    if (arg == '--skip-flagged') {
+      skipFlagged = true;
       continue;
     }
 
@@ -180,6 +190,7 @@ CliExportParseResult parseCliExportArgs(List<String> args) {
     includeImages: includeImages,
     preferCorrectedContent: preferCorrectedContent,
     listsAsText: listsAsText,
+    skipFlagged: skipFlagged,
   );
 }
 
@@ -258,6 +269,7 @@ Future<int> runCliExportCommand(
       listsAsText: parseResult.listsAsText,
       allAsText: parseResult.allAsText,
       blockSeparator: parseResult.blockSeparator,
+      skipFlagged: parseResult.skipFlagged,
       skipHashes: skipHashes,
       skipHashesMode: parseResult.skipHashesMode,
     );

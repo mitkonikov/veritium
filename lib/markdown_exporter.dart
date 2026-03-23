@@ -37,6 +37,7 @@ class MarkdownExporter {
       bool listsAsText = false,
       bool allAsText = false,
       String blockSeparator = '\n\n',
+      bool skipFlagged = false,
       Set<String> skipHashes = const <String>{},
       SkipHashesMode skipHashesMode = SkipHashesMode.span,
     }
@@ -60,6 +61,7 @@ class MarkdownExporter {
       listsAsText: listsAsText,
       allAsText: allAsText,
       blockSeparator: blockSeparator,
+      skipFlagged: skipFlagged,
       skipHashes: skipHashes,
       skipHashesMode: skipHashesMode,
     );
@@ -73,6 +75,7 @@ class MarkdownExporter {
     bool listsAsText = false,
     bool allAsText = false,
     String blockSeparator = '\n\n',
+    bool skipFlagged = false,
     Set<String> skipHashes = const <String>{},
     SkipHashesMode skipHashesMode = SkipHashesMode.span,
   }) {
@@ -87,6 +90,7 @@ class MarkdownExporter {
 
       for (final block in paraBlocks) {
         if (block is! Map) continue;
+        if (skipFlagged && _isBlockFlagged(block)) continue;
         final String blockType = (block['type'] ?? '').toString().toLowerCase();
 
         if (blockType == 'image' || blockType == 'image_caption') {
@@ -147,6 +151,7 @@ class MarkdownExporter {
     bool listsAsText = false,
     bool allAsText = false,
     String blockSeparator = '\n\n',
+    bool skipFlagged = false,
     Set<String> skipHashes = const <String>{},
     SkipHashesMode skipHashesMode = SkipHashesMode.span,
   }) async {
@@ -158,6 +163,7 @@ class MarkdownExporter {
       listsAsText: listsAsText,
       allAsText: allAsText,
       blockSeparator: blockSeparator,
+      skipFlagged: skipFlagged,
       skipHashes: skipHashes,
       skipHashesMode: skipHashesMode,
     );
@@ -331,6 +337,22 @@ class MarkdownExporter {
       }
     }
 
+    return false;
+  }
+
+  static bool _isTruthyFlag(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      return normalized == 'true' || normalized == '1';
+    }
+    return false;
+  }
+
+  static bool _isBlockFlagged(Map<dynamic, dynamic> block) {
+    if (_isTruthyFlag(block['is_flagged'])) return true;
+    if (_isTruthyFlag(block['flagged'])) return true;
     return false;
   }
 

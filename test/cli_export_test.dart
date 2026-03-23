@@ -88,6 +88,17 @@ void main() {
     expect(result.blockSeparator, '\n');
   });
 
+  test('parse CLI args with skip-flagged mode', () {
+    final result = parseCliExportArgs([
+      '--input',
+      'examples/straza/id-40086785_date-19091112_vol-01_no-132_middle.json',
+      '--skip-flagged',
+    ]);
+
+    expect(result.error, isNull);
+    expect(result.skipFlagged, isTrue);
+  });
+
   test('loadSkipHashes reads trimmed unique hashes', () async {
     final tempDir = await Directory.systemTemp.createTemp('veritium_cli_skip_hashes_');
     try {
@@ -387,6 +398,61 @@ void main() {
       final content = await File(outputPath).readAsString();
       expect(content, contains('First block\nSecond block\n'));
       expect(content, isNot(contains('First block\n\nSecond block')));
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
+  test('CLI skip-flagged excludes blocks with is_flagged true', () async {
+    final tempDir = await Directory.systemTemp.createTemp('veritium_cli_skip_flagged_');
+    try {
+      final inputPath = '${tempDir.path}${Platform.pathSeparator}input_middle.json';
+      final outputPath = '${tempDir.path}${Platform.pathSeparator}output.md';
+
+      final json = '''
+{
+  "pdf_info": [
+    {
+      "para_blocks": [
+        {
+          "type": "text",
+          "is_flagged": true,
+          "lines": [
+            {"spans": [{"type": "text", "content": "Should be skipped"}]}
+          ]
+        },
+        {
+          "type": "text",
+          "is_flagged": false,
+          "lines": [
+            {"spans": [{"type": "text", "content": "Should stay"}]}
+          ]
+        }
+      ]
+    }
+  ]
+}
+''';
+
+      await File(inputPath).writeAsString(json);
+
+      final exitCode = await runCliExportCommand(
+        [
+          '--input',
+          inputPath,
+          '--output',
+          outputPath,
+          '--skip-flagged',
+        ],
+        command: 'test-skip-flagged',
+      );
+
+      expect(exitCode, 0);
+      final content = await File(outputPath).readAsString();
+      expect(content, contains('Should stay'));
+      expect(content, isNot(contains('Should be skipped')));
     } finally {
       if (tempDir.existsSync()) {
         tempDir.deleteSync(recursive: true);
